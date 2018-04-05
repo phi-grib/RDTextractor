@@ -23,7 +23,7 @@ Anatomical entity that the finding refers to (case insensitive). You can filter 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Vitic database version (default: 2016.2).
     - -d / --sid SID
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with Vitic database version 2016.2, provide the Oracle SID's.
-&nbsp;&nbsp;&nbsp;&nbsp;-u / --user USER
+    - -u / --user USER
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with Vitic database version 2016.2, provide the Oracle database user name.
     - -p / --passw PASSW
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with Vitic database version 2016.2, provide the Oracle database password.
