@@ -54,26 +54,26 @@ Anatomical entity that the finding refers to (case insensitive). You can filter 
 ## Use examples
 ### 1. Extract all studies with liver-related findings
 + vitic 2016.1:  
-  `python extract.py -v 2016.1 -a liver`
+  `extract -v 2016.1 -a liver`
 + vitic 2016.2:  
-  `python extract.py -v 2016.2 -d ORACLE_SID -u ORACLE_USER -p ORACLE_PASSWORD -a liver`
+  `extract -v 2016.2 -d ORACLE_SID -u ORACLE_USER -p ORACLE_PASSWORD -a liver`
 
 ### 2. Extract all studies with liver- and kidney-related findings
 Note that you can filter for more than one organ by passing a blank space-separated list.  
 * vitic 2016.1:  
-  `python extract.py -v 2016.1 -a liver kidney`  
+  `extract -v 2016.1 -a liver kidney`  
 * vitic 2016.2:  
-  `python extract.py -v 2016.2 -d ORACLE_SID -u ORACLE_USER -p ORACLE_PASSWORD -a liver kidney`
+  `extract -v 2016.2 -d ORACLE_SID -u ORACLE_USER -p ORACLE_PASSWORD -a liver kidney`
 
 ### 3. Extract only studies of interest
 Filter the studies of interest based on exposure time (days), administration route, and species. Note that for route and species you can filter for more than one value by passing a blank space-separated list.  
 * Using long arguments:  
-`python extract.py -v 2016.1 --organ liver --min_exposure 1 --max_exposure 10 --route ORAL --species MOUSE RAT`  
+`extract -v 2016.1 --organ liver --min_exposure 1 --max_exposure 10 --route ORAL --species MOUSE RAT`  
 * Using short arguments:  
-`python extract.py -v 2016.1 -a liver -i 1 -e 10 -r ORAL -s MOUSE RAT`
+`extract -v 2016.1 -a liver -i 1 -e 10 -r ORAL -s MOUSE RAT`
 
 ### 4. Extract treatment-related findings only
-`python extract.py -v 2016.1 -a liver -i 1 -e 10 -r ORAL -s MOUSE RAT -t`
+`extract -v 2016.1 -a liver -i 1 -e 10 -r ORAL -s MOUSE RAT -t`
 
 ### 5. Output example
 After extracting data using this tool, two output files are generated, one with quantitative and the other with qualitative data. Both have five common columns, namely:
