@@ -5,6 +5,7 @@
 `python setup.py install`
 
 Once it's installed, you can run the extractor by typing:
+
 `extract -h`
 
 ## Introduction
