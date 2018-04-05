@@ -9,10 +9,10 @@ Once it's installed, you can run the extractor by typing:
 `% extract -h`
 
 ## Introduction
-This tool is designed to extract data from the _in vivo_ repeat-dose toxicity (RDT) studies' database generated within the context of the [eTOX](http://www.etoxproject.eu/) project. These data are expanded using an histopathological observation and an anatomical entity ontology. The [histopathological ontology](https://github.com/Novartis/hpath/blob/master/LICENSE.txt) is obtained from Novartis and can be used under the Apache License 2.0. The anatomical entities ontology is extracted from the following paper:
+This tool is designed to extract data from the _in vivo_ repeat-dose toxicity (RDT) studies' database generated within the context of the [eTOX](http://www.etoxproject.eu/) project. These data are expanded using an histopathological observation and an anatomical entity ontologies. The [histopathological ontology](https://github.com/Novartis/hpath/blob/master/LICENSE.txt) is obtained from Novartis and can be used under the Apache License 2.0. The anatomical entities ontology is extracted from the following paper:
 - [Hayamizu TF, Mangan M, Corradi JP, Kadin JA, Ringwald M. Genome Biol. 2005; 6(3): R29](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1088948/)
 
-It can work with version 2016.1 or with later versions. For the former, you need to request access to the data files from us. For the latter, you need to have the Oracle database provided by [Lhasa](https://www.lhasalimited.org/) installed and run the script from the Oracle server. Additionally, you'll need to set up the ORACLE_HOME and LD_LIBRARY_PATH environment variables.
+The script can work with version 2016.1 or with later versions. For the former, you need to request access to the data files from us and place these files in the data folder. For the latter, you need to have the Oracle database provided by [Lhasa](https://www.lhasalimited.org/) installed and run the script from the Oracle server. Additionally, you'll need to set up the ORACLE_HOME and LD_LIBRARY_PATH environment variables.
 This project is an extension of the work published in the following paper:
 - [López-Massaguer O, Pinto-Gil K, Sanz F, Amberg A, Anger LT, Stolte M, Ravagli C, Marc P, Pastor M. Toxicol Sci. 2018 Mar; 162(1): 287–300.](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5837688/)
 
