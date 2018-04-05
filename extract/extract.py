@@ -37,7 +37,7 @@ def load_version(args):
     Load tables with information
     """
 
-    if args.version == '2016.1':
+    if args.version == 'local':
         ########################## 
         # Load stored dataframes #
         ##########################
@@ -415,16 +415,16 @@ def main ():
 
     # Version-related arguments
     parser.add_argument('-v', '--version', help='Vitic database version \
-            (default: 2016.2).', 
-            choices=['2016.1', '2016.2'], default= '2016.2', required=False)
-    parser.add_argument('-d', '--sid', help='If working with Vitic \
-            database version 2016.2, provide the Oracle SID\'s.', 
+            (default: oracle).', 
+            choices=['local', 'oracle'], default= 'oracle', required=False)
+    parser.add_argument('-d', '--sid', help='If working with Vitic\'s \
+            Oracle database, provide the Oracle SID\'s.', 
             required=False)
-    parser.add_argument('-u', '--user', help='If working with Vitic \
-            database version 2016.2, provide the Oracle database \
+    parser.add_argument('-u', '--user', help='If working with Vitic\'s \
+            Oracle database, provide the Oracle database \
             user name.', required=False)
-    parser.add_argument('-p', '--passw', help='If working with Vitic \
-            database version 2016.2, provide the Oracle database \
+    parser.add_argument('-p', '--passw', help='If working with Vitic\'s \
+            Oracle database, provide the Oracle database \
             password.',  required=False)
 
     # Study-related arguments
@@ -476,9 +476,8 @@ def main ():
             default= 'output', required=False)
 
     args = parser.parse_args()
-    if args.version == '2016.2' and args.passw is None:
-       raise argparse.ArgumentTypeError('Oracle database password required to work \
-                                        with version 2016.2.')
+    if args.version == 'oracle' and args.passw is None:
+       raise argparse.ArgumentTypeError('Password required to connect to the Oracle database.')
 
     if args.observation:
         right_case_observations = []
@@ -489,8 +488,7 @@ def main ():
             else:
                 right_case_observations.extend(right_case_obs)
         if len(right_case_observations) == 0:
-            raise argparse.ArgumentTypeError('None of the observations you are trying \
-                                            to filter for are found: %s.' %args.observation)
+            raise argparse.ArgumentTypeError('None of the observations you are trying to filter for are found: %s.' %args.observation)
         args.observation = right_case_observations
 
     right_case_organs = []
@@ -501,8 +499,7 @@ def main ():
         else:
             right_case_organs.extend(right_case_obs)
     if len(right_case_organs) == 0:
-        raise argparse.ArgumentTypeError('None of the organs you are trying to filter \
-                                        for are found: %s.' %args.organ)
+        raise argparse.ArgumentTypeError('None of the organs you are trying to filter for are found: %s.' %args.organ)
     args.organ = right_case_organs
 
     run(args)

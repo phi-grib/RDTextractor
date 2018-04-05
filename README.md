@@ -19,8 +19,8 @@ Anatomical entity that the finding refers to (case insensitive). You can filter 
 
 - Optional arguments:
   - Version-related arguments:
-    - -v / --version _{2016.1,2016.2}_
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Vitic database version (default: 2016.2).
+    - -v / --version _{local, oracle}_
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Vitic database version (default: oracle).
     - -d / --sid SID
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with Vitic database version 2016.2, provide the Oracle SID's.
     - -u / --user USER
