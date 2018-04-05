@@ -4,6 +4,9 @@
 `pip install -r requirements.txt`  
 `python setup.py install`
 
+Once it's installed, you can run the extractor by typing:
+`extract -h`
+
 ## Introduction
 This tool is designed to extract data from the _in vivo_ repeat-dose toxicity (RDT) studies' database generated within the context of the [eTOX](http://www.etoxproject.eu/) project. It can work with versions 2016.1 and 2016.2. For the former, you need to request access to the data files. For the latter, you need to have the Oracle database provided by [Lhasa](https://www.lhasalimited.org/) installed and run the script from the Oracle server. Additionally, you'll need to set up the ORACLE_HOME and LD_LIBRARY_PATH environment variables.
 This project is an extension of the work published in the following paper:

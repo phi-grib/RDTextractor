@@ -28,7 +28,7 @@ import cx_Oracle
 
 # Load ontology dataframe
 onto_file = 'ontology.pkl'
-fname = os.path.join(os.path.dirname(__file__), 'data',  onto_file)
+fname = os.path.join(os.path.dirname(__file__), '../../data',  onto_file)
 onto_df = pd.read_pickle(fname)
 
 def load_version(args):
@@ -45,12 +45,12 @@ def load_version(args):
         # Load study dataframe
         study_file = 'study.pkl'
         fname = os.path.join(os.path.dirname(__file__), 
-                            'data',  study_file)
+                            '../../data',  study_file)
         study_df = pd.read_pickle(fname)
         # Load finding dataframe
         find_file = 'findings.pkl.gz'
         fname = os.path.join(os.path.dirname(__file__), 
-                            'data',  find_file)
+                            '../../data',  find_file)
         find_df = pd.read_pickle(fname, compression='gzip')
     else:
         #########################################
@@ -61,7 +61,7 @@ def load_version(args):
         # Load normlisation lookup table
         norm_file = 'normalisation.pkl'
         fname = os.path.join(os.path.dirname(__file__), 
-                            '../data',  norm_file)
+                            '../../data',  norm_file)
         normD = pd.read_pickle(fname)
 
         dsn_tns = cx_Oracle.makedsn('localhost', '1521', args.sid)
