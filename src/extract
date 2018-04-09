@@ -72,13 +72,13 @@ def load_version(args):
         # Generate normalised study dataframe
         sys.stdout.write('\tLoading studies\n')
         cmd = "SELECT SUBST_ID, SUBST_ID, STANDARDISED_SEX, STANDARDISED_ROUTE, \
-            STANDARDISED_SPECIES, EXPOSURE_PERIOD \
+            STANDARDISED_SPECIES, EXPOSURE_PERIOD, REPORT_NUMBER \
             FROM STUDY_DESIGN \
             JOIN SUBSTANCE_IDS ON STUDY_DESIGN.STRUCTURE_LUID = SUBSTANCE_IDS.LUID"
         cur.execute(cmd)
         results = cur.fetchall()
         tmp_table = []
-        for (study_id, subst_id, sex, route, species, exposure) in results:
+        for (study_id, subst_id, sex, route, species, exposure, report_number) in results:
              sex = sex.upper()
              sex = normD[sex]
              if route is None:
@@ -91,9 +91,10 @@ def load_version(args):
              else:
                  species = species.upper()
                  species = normD[species]
-             tmp_table.append([study_id, subst_id, sex, route, species, exposure])
+             tmp_table.append([study_id, subst_id, sex, route, species, 
+                                exposure, report_number])
         study_df = pd.DataFrame(tmp_table, columns=['study_id', 'subst_id', 'normalised_sex',
-                        'normalised_administration_route', 'normalised_species', 'exposure_period_days'])
+                        'normalised_administration_route', 'normalised_species', 'exposure_period_days', 'report_number'])
 
         # Generate normalised findings dataframe
         sys.stdout.write('\tLoading findings\n')
@@ -266,8 +267,9 @@ def expand(df,args):
            
             obs_list.append(row)
 
-            parents=onto_df[(onto_df['child_term'] == row['observation_normalised']) & 
-                        (onto_df['ontology'] == 'histopathology')  & (onto_df['parent_term']!="morphologic change")]
+            parents = onto_df[(onto_df['child_term'] == row['observation_normalised']) 
+                            & (onto_df['ontology'] == 'histopathology') 
+                            & (onto_df['parent_term']!="morphologic change")]
 
             while not parents.empty:
                 new_parents = []
@@ -302,10 +304,10 @@ def expand(df,args):
                 all_related_observation = all_related_observation.union(related_observation.child_term)
     
             observation_dict.update({n: organ for n in all_related_observation})
-            all_observations = all_organs.union(all_related_observation,all_observation)
+            all_observations = all_observations.union(all_related_observation,all_observations)
     
-        findings_out=df[df['observation_normalised'].isin(all_organs)]
-        findings_out.loc[:,'observation_normalised']=df['observation_normalised'].map(organs_dict)
+        findings_out=df[df['observation_normalised'].isin(all_observations)]
+        findings_out.loc[:,'observation_normalised']=df['observation_normalised'].map(observation_dict)
 
     
     return findings_out
@@ -320,38 +322,44 @@ def run(args):
     based on the organs and morphological changes ontologies.
     """
 
-    sys.stderr.write('\nLoading background information for version %s\n' %args.version)
+    sys.stdout.write('\nLoading background information for version %s\n' %args.version)
     study_df, find_df = load_version(args)
     
     #################################
     # Select only relevant findings #
     #################################
-    sys.stderr.write('Filtering to relevant information\n')
+    sys.stdout.write('Filtering to relevant information\n')
     relevant_studies_df = filter_study(args,study_df)
     relevant_find = find_df[find_df.study_id.isin(relevant_studies_df.study_id)]
-    relevant_find = pd.merge(relevant_find, study_df[['study_id', 'subst_id']],
+    relevant_find = pd.merge(relevant_find, study_df[['study_id', 'subst_id', 'report_number']],
                         how='left', on='study_id', left_index=False,
                         right_index=False, sort=False)
+    relevant_find.report_number = relevant_find.report_number.fillna('NA')
     
     ###################################
     # Get stats for relevant findings #
     ###################################
+    group_df = relevant_find.groupby(('subst_id'))
     # Get the number of studies per substance
-    count_df = relevant_find.groupby(('subst_id')).study_id.nunique().to_frame().reset_index()
+    count_df = group_df.study_id.nunique().to_frame().reset_index()
+    # Get the list of sudies IDs
+    studies_list_df = group_df.report_number.apply(lambda x: '; '.join(set(x))).reset_index()
     # Get the global dose range per substance
     range_df = relevant_find[relevant_find.dose > 0]
     range_df = range_df.groupby(('subst_id')).dose.apply(get_stats).unstack().reset_index()
     # Get all stats into a single dataframe
     stats_df = pd.merge(count_df, range_df, how='inner', on='subst_id', 
                         left_index=False, right_index=False, sort=False)
-    stats_df.columns = ['subst_id', 'study_count', 'dose_max', 'dose_min']
+    stats_df = pd.merge(stats_df, studies_list_df, how='left', on='subst_id', 
+                        left_index=False, right_index=False, sort=False)
+    stats_df.columns = ['subst_id', 'study_count', 'dose_max', 'dose_min', 'report_number_list']
 
     ###################################################################
     # Expand based on anatomical and morphological changes ontologies #
     ###################################################################
     # Expand organs and histopathological findings according to the ontologies 
     # and filter by finding-based arguments
-    sys.stderr.write('Expand based on anatomic and morphological change ontologies\n')
+    sys.stdout.write('Expand based on anatomic and morphological change ontologies\n')
     filtered_find = expand(relevant_find,args)
 
     if filtered_find.empty:
@@ -361,13 +369,11 @@ def run(args):
     # Aggragate by substance and finding #
     ######################################
     # Define finding as organ+observation
-    filtered_find.organ_normalised = filtered_find.organ_normalised.fillna('NA')
-    filtered_find.observation_normalised = filtered_find.observation_normalised.fillna('NA')
     filtered_find['finding'] = filtered_find.apply(lambda row: row.organ_normalised+'_'+row.observation_normalised, axis=1)
     filtered_find = filtered_find[['subst_id', 'finding', 'dose']]
 
-    # Aggregate by substance and finding (as defined above), keeping the minimum dose 
-    # for each substance/finding instance
+    # Aggregate by substance and finding (as defined above), 
+    # keeping the minimum dose for each substance/finding instance
     group_df = filtered_find.groupby(('subst_id', 'finding')).min().add_prefix('min_').reset_index()
     
     #######################################
@@ -381,7 +387,7 @@ def run(args):
     quantitative_df.is_active = quantitative_df.is_active.fillna('False')
     # Reorder columns
     cols = quantitative_df.columns.tolist()
-    cols = cols[0:4]+[cols[-1]]+cols[4:-1]
+    cols = cols[0:5]+[cols[-1]]+cols[5:-1]
     quantitative_df = quantitative_df[cols]
     
     ### Qualitative
@@ -393,7 +399,7 @@ def run(args):
     qualitative_df.is_active = qualitative_df.is_active.fillna('False')
     # Reorder columns
     cols = qualitative_df.columns.tolist()
-    cols = cols[0:4]+[cols[-1]]+cols[4:-1]
+    cols = cols[0:5]+[cols[-1]]+cols[5:-1]
     qualitative_df = qualitative_df[cols]
 
     ####################
