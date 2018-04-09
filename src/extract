@@ -292,22 +292,23 @@ def expand(df,args):
         all_observations = set()
         for observation in args.observation:
     
-            all_related_observation = set([observation])
+            all_related_observations = set([observation])
             related_observation = onto_df[(onto_df.parent_term == observation) 
                                         & (onto_df.ontology == 'histopathology')]
-            all_related_observation = all_related_observation.union(related_observation.child_term)
+            all_related_observations = all_related_observations.union(related_observation.child_term)
     
             while not related_observation.empty:
             
                 related_observation = onto_df[(onto_df.parent_term.isin(related_observation.child_term)) 
                                     & (onto_df.ontology=='histopathology')]
-                all_related_observation = all_related_observation.union(related_observation.child_term)
+                all_related_observations = all_related_observations.union(related_observation.child_term)
     
-            observation_dict.update({n: organ for n in all_related_observation})
-            all_observations = all_observations.union(all_related_observation,all_observations)
+            observation_dict.update({n: observation for n in all_related_observations})
+            all_observations = all_observations.union(all_related_observations,all_observations)
     
         findings_out=df[df['observation_normalised'].isin(all_observations)]
         findings_out.loc[:,'observation_normalised']=df['observation_normalised'].map(observation_dict)
+
 
     
     return findings_out
