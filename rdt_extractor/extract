@@ -25,10 +25,13 @@ import pandas as pd
 # Disable SettingWithCopyWarning warnings
 pd.set_option('chained_assignment', None)
 import cx_Oracle
+import rdt_extractor
 
 # Load ontology dataframe
 onto_file = 'ontology.pkl'
-fname = os.path.join(os.path.dirname(__file__), '../../data',  onto_file)
+packagedir = rdt_extractor.__path__[0]
+fname = os.path.join(packagedir, '../data',  onto_file)
+print (fname)
 onto_df = pd.read_pickle(fname)
 
 def load_version(args):
@@ -44,13 +47,11 @@ def load_version(args):
 
         # Load study dataframe
         study_file = 'study.pkl'
-        fname = os.path.join(os.path.dirname(__file__), 
-                            '../../data',  study_file)
+        fname = os.path.join(packagedir, '../data',  study_file)
         study_df = pd.read_pickle(fname)
         # Load finding dataframe
         find_file = 'findings.pkl.gz'
-        fname = os.path.join(os.path.dirname(__file__), 
-                            '../../data',  find_file)
+        fname = os.path.join(packagedir, '../data',  find_file)
         find_df = pd.read_pickle(fname, compression='gzip')
     else:
         #########################################
@@ -60,8 +61,7 @@ def load_version(args):
 
         # Load normlisation lookup table
         norm_file = 'normalisation.pkl'
-        fname = os.path.join(os.path.dirname(__file__), 
-                            '../../data',  norm_file)
+        fname = os.path.join(packagedir, '../data',  norm_file)
         normD = pd.read_pickle(fname)
 
         dsn_tns = cx_Oracle.makedsn('localhost', '1521', args.sid)
@@ -94,7 +94,8 @@ def load_version(args):
              tmp_table.append([study_id, subst_id, sex, route, species, 
                                 exposure, report_number])
         study_df = pd.DataFrame(tmp_table, columns=['study_id', 'subst_id', 'normalised_sex',
-                        'normalised_administration_route', 'normalised_species', 'exposure_period_days', 'report_number'])
+                        'normalised_administration_route', 'normalised_species', 
+                        'exposure_period_days', 'report_number'])
 
         # Generate normalised findings dataframe
         sys.stdout.write('\tLoading findings\n')

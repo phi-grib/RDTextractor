@@ -1,2 +1,3 @@
 data/findings.pkl.gz
 data/study.pkl
+rdt_extractor/generate_tables.py
