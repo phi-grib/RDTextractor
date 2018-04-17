@@ -21,6 +21,7 @@
 ##    along with this code. If not, see <http://www.gnu.org/licenses/>.
 
 import argparse, os, sys, time, math
+import time
 import pandas as pd
 # Disable SettingWithCopyWarning warnings
 pd.set_option('chained_assignment', None)
@@ -239,76 +240,56 @@ def expand(df,args):
     #########
     organs_dict={}
     all_organs=set()
-    for organ in args.organ:    
-        all_related_organs = set([organ])
-        related_organs = onto_df[(onto_df.parent_term == organ) & 
-                            (onto_df.ontology == 'anatomy')]
-        all_related_organs = all_related_organs.union(related_organs.child_term)
-    
-        while not related_organs.empty:
-            related_organs = onto_df[(onto_df.parent_term.isin(related_organs.child_term)) & 
-                                (onto_df.ontology=='anatomy')]
-            all_related_organs = all_related_organs.union(related_organs.child_term)
-    
-        organs_dict.update({n: organ for n in all_related_organs})
-        all_organs = all_organs.union(all_related_organs,all_organs)
-    
+    onto_anatomy=onto_df[(onto_df.ontology == 'anatomy')]
+
+     # get for each organ get all its childs and crate a dict
+    for organ in args.organ: 
+        all_organs.union([organ])
+        related_organs = onto_anatomy[(onto_anatomy.parent_term == organ)]
+        all_organs = all_organs.union(related_organs.child_term)
+        organs_dict.update({n: organ for n in related_organs.child_term})
+
     df = df[df['organ_normalised'].isin(all_organs)]
     df.loc[:,'organ_normalised'] = df['organ_normalised'].map(organs_dict)
-
    
     ###############
     # OBSERVATION #
     ###############
     if args.observation is None:
+      
+        obs_list=[]    
+        onto_anamoty=onto_df[(onto_df['ontology'] == 'histopathology') 
+                    & (onto_df['parent_term']!="morphologic change")]
 
-        obs_list=[]
-       
         for row in df.to_dict('records'):
-           
+
             obs_list.append(row)
+            parents = onto_anamoty[(onto_anamoty['child_term'] == row['observation_normalised'])]
 
-            parents = onto_df[(onto_df['child_term'] == row['observation_normalised']) 
-                            & (onto_df['ontology'] == 'histopathology') 
-                            & (onto_df['parent_term']!="morphologic change")]
+            #Add new row to the dataframe with the name of the parent 
+            for parent in parents.parent_term:
+                new_row=row.copy()
+                new_row['observation_normalised'] = parent
+                obs_list.append(new_row)
 
-            while not parents.empty:
-                new_parents = []
-                #Add new row to the dataframe with the name of the parent 
-                for parent in parents.parent_term:
-                    new_row=row.copy()
-                    new_row['observation_normalised'] = parent
-                    obs_list.append(new_row)
-                    new_parents.append(parent)
-
-                parents = onto_df[(onto_df['child_term'].isin(new_parents))
-                            & (onto_df['ontology'] == 'histopathology') 
-                            & (onto_df['parent_term']!="morphologic change")]
-       
         findings_out = df.from_dict(obs_list)
         findings_out.drop_duplicates(inplace=True)
-        
+    
     else:
-        observation_dict = {}
-        all_observations = set()
-        for observation in args.observation:
-    
-            all_related_observations = set([observation])
-            related_observation = onto_df[(onto_df.parent_term == observation) 
-                                        & (onto_df.ontology == 'histopathology')]
-            all_related_observations = all_related_observations.union(related_observation.child_term)
-    
-            while not related_observation.empty:
-            
-                related_observation = onto_df[(onto_df.parent_term.isin(related_observation.child_term)) 
-                                    & (onto_df.ontology=='histopathology')]
-                all_related_observations = all_related_observations.union(related_observation.child_term)
-    
-            observation_dict.update({n: observation for n in all_related_observations})
-            all_observations = all_observations.union(all_related_observations,all_observations)
-    
+
+        observation_dict={}
+        all_observations=set()      
+        onto_histopatho=onto_df[(onto_df.ontology == 'histopathology')]
+
+        # get for each observation all its childs and crate a dict
+        for observation in args.observation: 
+            all_observations.union([observation])
+            related_observation = onto_histopatho[(onto_histopatho.parent_term == observation)]
+            all_observations = all_observations.union(related_observation.child_term)
+            observation_dict.update({n: observation for n in related_observation.child_term})
+
         findings_out=df[df['observation_normalised'].isin(all_observations)]
-        findings_out.loc[:,'observation_normalised']=df['observation_normalised'].map(observation_dict)
+        findings_out.loc[:,'observation_normalised']=df['observation_normalised'].map(observation_dict)        
 
 
     
@@ -338,6 +319,8 @@ def run(args):
                         right_index=False, sort=False)
     relevant_find.report_number = relevant_find.report_number.fillna('NA')
     
+    print ("Length: "+str(len(relevant_find)))
+    start=time.time()
     ###################################
     # Get stats for relevant findings #
     ###################################
@@ -404,6 +387,9 @@ def run(args):
     cols = cols[0:5]+[cols[-1]]+cols[5:-1]
     qualitative_df = qualitative_df[cols]
 
+    end=time.time()
+
+    print ("Time: "+str(end-start))
     ####################
     # Save the results #
     ####################
@@ -442,7 +428,7 @@ def main ():
             period (days).', required=False)
     parser.add_argument('-r', '--route', help='Administration route. You can filter for \
             more than one administration route by passing a blank space-separated list.', 
-            choices=['cutaneous', 'diertary', 'oral', 'oral gavage', 
+            choices=['cutaneous', 'dietary', 'oral', 'oral gavage', 
             'intragastric', 'nasogastric', 'oropharyngeal', 'endotracheal', 
             'intra-articular', 'intradermal', 'intraesophageal', 
             'intraileal', 'intramuscular', 'subcutaneous', 'intraocular', 
