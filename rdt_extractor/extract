@@ -261,12 +261,12 @@ def expand(df,args):
     ###############
     if args.observation is None:
 
-        findings_out = pd.merge(relevant_find, onto_df, how='left',
+        findings_out = pd.merge(df, onto_df, how='left',
                                 left_on='observation_normalised', 
                                 right_on='child_term')
         findings_out = findings_out[['study_id','relevance','parent_term',
                                     'organ_normalised','dose','subst_id','report_number']]
-        findings_out.columns = relevant_find.columns
+        findings_out.columns = df.columns
         findings_out.drop_duplicates(inplace=True)
         
     else:
