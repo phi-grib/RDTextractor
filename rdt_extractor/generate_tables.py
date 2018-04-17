@@ -69,7 +69,7 @@ def run(args):
     #
     cmd = '( WITH RECURSIVE ontology  AS ( \
         select relations."ONTOLOGY_TERM_ID" as child_term, \
-        relations."RELATED_ONTOLOGY_TERM_ID" as parent_term \
+        relations."ONTOLOGY_TERM_ID" as parent_term \
         from  input_onto_etox_ontology_relationships relations \
         UNION \
         select onto.child_term as child_term,\
@@ -87,7 +87,7 @@ def run(args):
     )UNION ( \
     WITH RECURSIVE ontology  AS ( \
         select relations."ONTOLOGY_TERM_ID" as child_term, \
-            relations."RELATED_ONTOLOGY_TERM_ID" as parent_term \
+            relations."ONTOLOGY_TERM_ID" as parent_term \
             from  input_onto_etox_ontology_relationships relations \
         UNION \
         select onto.child_term as child_term, \
