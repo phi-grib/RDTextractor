@@ -256,10 +256,10 @@ def expand(df,args):
     ###############
     if args.observation is None:
       
-        onto_anamoty=onto_df[(onto_df['ontology'] == 'histopathology') 
+        onto_histopatho=onto_df[(onto_df['ontology'] == 'histopathology') 
                     & (onto_df['parent_term']!="morphologic change")]
 
-        findings_out = pd.merge(df, onto_anamoty, how='left',
+        findings_out = pd.merge(df, onto_histopatho, how='left',
                                 left_on='observation_normalised', 
                                 right_on='child_term')
         findings_out = findings_out[['study_id','relevance','parent_term',
