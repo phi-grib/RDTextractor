@@ -31,7 +31,6 @@ import rdt_extractor
 onto_file = 'ontology.pkl'
 packagedir = rdt_extractor.__path__[0]
 fname = os.path.join(packagedir, '../data',  onto_file)
-print (fname)
 onto_df = pd.read_pickle(fname)
 
 def load_version(args):
@@ -262,30 +261,12 @@ def expand(df,args):
     ###############
     if args.observation is None:
 
-        obs_list=[]
-       
-        for row in df.to_dict('records'):
-           
-            obs_list.append(row)
-
-            parents = onto_df[(onto_df['child_term'] == row['observation_normalised']) 
-                            & (onto_df['ontology'] == 'histopathology') 
-                            & (onto_df['parent_term']!="morphologic change")]
-
-            while not parents.empty:
-                new_parents = []
-                #Add new row to the dataframe with the name of the parent 
-                for parent in parents.parent_term:
-                    new_row=row.copy()
-                    new_row['observation_normalised'] = parent
-                    obs_list.append(new_row)
-                    new_parents.append(parent)
-
-                parents = onto_df[(onto_df['child_term'].isin(new_parents))
-                            & (onto_df['ontology'] == 'histopathology') 
-                            & (onto_df['parent_term']!="morphologic change")]
-       
-        findings_out = df.from_dict(obs_list)
+        findings_out = pd.merge(relevant_find, onto_df, how='left',
+                                left_on='observation_normalised', 
+                                right_on='child_term')
+        findings_out = findings_out[['study_id','relevance','parent_term',
+                                    'organ_normalised','dose','subst_id','report_number']]
+        findings_out.columns = relevant_find.columns
         findings_out.drop_duplicates(inplace=True)
         
     else:
