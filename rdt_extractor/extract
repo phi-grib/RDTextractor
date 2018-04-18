@@ -442,7 +442,7 @@ def main ():
     if args.observation:
         right_case_observations = []
         for obs in args.observation:
-            right_case_obs =  list(onto_df[onto_df['parent_term'].str.lower() == obs].parent_term.unique())
+            right_case_obs =  list(onto_histopatho_df[onto_histopatho_df['parent_term'].str.lower() == obs].parent_term.unique())
             if len(right_case_obs) == 0:
                 sys.stderr.write('The observation %s is not found in the database.\n' %obs)
             else:
@@ -453,7 +453,7 @@ def main ():
 
     right_case_organs = []
     for org in args.organ:
-        right_case_obs =  list(onto_df[onto_df['parent_term'].str.lower() == org].parent_term.unique())
+        right_case_obs =  list(onto_anatomy_df[onto_anatomy_df['parent_term'].str.lower() == org].parent_term.unique())
         if len(right_case_obs) == 0:
             sys.stderr.write('The organ %s is not found in the database.\n' %org)
         else:
