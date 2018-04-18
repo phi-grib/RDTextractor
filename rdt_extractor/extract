@@ -29,10 +29,16 @@ import cx_Oracle
 import rdt_extractor
 
 # Load ontology dataframe
-onto_file = 'ontology.pkl'
+onto_file = 'anatomy_ontology.pkl'
 packagedir = rdt_extractor.__path__[0]
 fname = os.path.join(packagedir, '../data',  onto_file)
-onto_df = pd.read_pickle(fname)
+onto_anatomy_df = pd.read_pickle(fname)
+
+onto_file = 'morph_changes_ontology.pkl'
+packagedir = rdt_extractor.__path__[0]
+fname = os.path.join(packagedir, '../data',  onto_file)
+onto_histopatho_df = pd.read_pickle(fname)
+
 
 def load_version(args):
 
@@ -229,63 +235,31 @@ def filter_study(args,study_df):
 def expand(df,args):
 
     """
-    Expand standardized observation and normalized organs based on
-    the hierarchy of ontologies stored in onto_df
+    Expand observations and organs based on the expanded
+    hierarchies of ontologies 
     """
-    # Create an empty output dataframe
+    columns = df.columns
+    if args.observation is not None:
+        onto_histopatho_df = onto_histopatho_df[onto_histopatho_df.parent_term.isin(args.observation)]
        
-    #########
-    # ORGAN #
-    #########
-    organs_dict={}
-    all_organs=set()
-    onto_anatomy=onto_df[(onto_df.ontology == 'anatomy')]
-
-     # get for each organ get all its childs and crate a dict
-    for organ in args.organ: 
-        all_organs.union([organ])
-        related_organs = onto_anatomy[(onto_anatomy.parent_term == organ)]
-        all_organs = all_organs.union(related_organs.child_term)
-        organs_dict.update({n: organ for n in related_organs.child_term})
-
-    df = df[df['organ_normalised'].isin(all_organs)]
-    df.loc[:,'organ_normalised'] = df['organ_normalised'].map(organs_dict)
+    # Expand anatomical entities based on the expanded ontology
+    out_df = pd.merge(df, onto_anatomy_df, how='left', left_on='organ_normalised', right_on='child_term')
+    # Select and rename columns
+    out_df = out_df[['study_id','relevance','observation_normalised','parent_term','dose',
+                     'subst_id','report_number']]
+    out_df.columns = columns
+    out_df.drop_duplicates(inplace=True)
    
-    ###############
-    # OBSERVATION #
-    ###############
-    if args.observation is None:
-      
-        onto_histopatho=onto_df[(onto_df['ontology'] == 'histopathology') 
-                    & (onto_df['parent_term']!="morphologic change")]
-
-        findings_out = pd.merge(df, onto_histopatho, how='left',
-                                left_on='observation_normalised', 
-                                right_on='child_term')
-        findings_out = findings_out[['study_id','relevance','parent_term',
-                                    'organ_normalised','dose','subst_id','report_number']]
-        findings_out.columns = df.columns
-        findings_out.drop_duplicates(inplace=True)
+    # Expand observations based on the expanded ontology
+    out_df = pd.merge(out_df, onto_histopatho_df, how='left', left_on='observation_normalised', 
+                        right_on='child_term')
+    # Select and rename columns
+    out_df = out_df[['study_id','relevance','parent_term','organ_normalised','dose',
+                    'subst_id','report_number']]
+    out_df.columns = columns
+    out_df.drop_duplicates(inplace=True)
     
-    else:
-
-        observation_dict={}
-        all_observations=set()      
-        onto_histopatho=onto_df[(onto_df.ontology == 'histopathology')]
-
-        # get for each observation all its childs and crate a dict
-        for observation in args.observation: 
-            all_observations.union([observation])
-            related_observation = onto_histopatho[(onto_histopatho.parent_term == observation)]
-            all_observations = all_observations.union(related_observation.child_term)
-            observation_dict.update({n: observation for n in related_observation.child_term})
-
-        findings_out=df[df['observation_normalised'].isin(all_observations)]
-        findings_out.loc[:,'observation_normalised']=df['observation_normalised'].map(observation_dict)        
-
-
-    
-    return findings_out
+    return out_df
 
 def get_stats(group):
     return {'min': group.min(), 'max': group.max()}

@@ -40,7 +40,7 @@ def run(args):
     
     df = pd.read_sql(cmd, con=conn)
     study_file = "study.pkl"
-    fname = os.path.join(os.path.dirname(__file__), "../data",  study_file)
+    fname = os.path.join(os.path.dirname(__file__), "../data", study_file)
     df.to_pickle(fname)
 
     #
@@ -61,51 +61,150 @@ def run(args):
     df.observation_normalised = df.observation_normalised.fillna('NA')
     df.organ_normalised = df.organ_normalised.fillna('NA')
     find_file = 'findings.pkl.gz'
-    fname = os.path.join(os.path.dirname(__file__), "../data",  find_file)
+    fname = os.path.join(os.path.dirname(__file__), "../data", find_file)
     df.to_pickle(fname, compression='gzip')
 
     #
-    # Create and store anatomy and histopathology ontology dataframe
+    # Create and store expanded anatomy ontology dataframe
     #
-    cmd = '( WITH RECURSIVE ontology  AS ( \
+    cmd = '( WITH RECURSIVE ontology AS ( \
         select relations."ONTOLOGY_TERM_ID" as child_term, \
         relations."ONTOLOGY_TERM_ID" as parent_term \
-        from  input_onto_etox_ontology_relationships relations \
+        from input_onto_etox_ontology_relationships relations \
         UNION \
         select onto.child_term as child_term,\
         relations."RELATED_ONTOLOGY_TERM_ID" as parent_term \
-        from   input_onto_etox_ontology_relationships relations \
+        from input_onto_etox_ontology_relationships relations \
         inner join ontology onto on (onto.parent_term=relations."ONTOLOGY_TERM_ID")\
         )\
         SELECT terms."TERM_NAME" as child_term, \
             terms2."TERM_NAME" as parent_term, \
             terms."ONTOLOGY_NAME" as ontology \
         FROM ontology onto \
-        INNER JOIN  input_onto_etox_ontology_terms terms on ( onto.child_term = terms."ONTOLOGY_TERM_ID") \
-        INNER JOIN  input_onto_etox_ontology_terms terms2 on ( onto.parent_term= terms2."ONTOLOGY_TERM_ID") \
-        WHERE terms."ONTOLOGY_NAME" =\'anatomy\' and  terms2."ONTOLOGY_NAME" =\'anatomy\' \
-    )UNION ( \
-    WITH RECURSIVE ontology  AS ( \
+        INNER JOIN input_onto_etox_ontology_terms terms on ( onto.child_term = terms."ONTOLOGY_TERM_ID") \
+        INNER JOIN input_onto_etox_ontology_terms terms2 on ( onto.parent_term= terms2."ONTOLOGY_TERM_ID") \
+        WHERE terms."ONTOLOGY_NAME" =\'anatomy\' and terms2."ONTOLOGY_NAME" =\'anatomy\')'
+           
+    df = pd.read_sql(cmd, con=conn)
+    find_file = "anatomy_ontology.pkl"
+    fname = os.path.join(os.path.dirname(__file__), "../data", find_file)
+    df.to_pickle(fname)
+
+    #
+    # Create and store anatomy and histopathology ontology dataframe
+    #
+    cmd = '(WITH RECURSIVE ontology AS ( \
         select relations."ONTOLOGY_TERM_ID" as child_term, \
             relations."ONTOLOGY_TERM_ID" as parent_term \
-            from  input_onto_etox_ontology_relationships relations \
+            from input_onto_etox_ontology_relationships relations \
         UNION \
         select onto.child_term as child_term, \
             relations."RELATED_ONTOLOGY_TERM_ID" as parent_term \
-            from   input_onto_etox_ontology_relationships relations \
+            from input_onto_etox_ontology_relationships relations \
             inner join ontology onto on (onto.parent_term=relations."ONTOLOGY_TERM_ID") \
         ) \
         SELECT terms."TERM_NAME" as child_term, \
             terms2."TERM_NAME" as parent_term, \
             terms."ONTOLOGY_NAME" as ontology \
         FROM ontology onto \
-        INNER JOIN  input_onto_etox_ontology_terms terms on ( onto.child_term = terms."ONTOLOGY_TERM_ID") \
-        INNER JOIN  input_onto_etox_ontology_terms terms2 on ( onto.parent_term= terms2."ONTOLOGY_TERM_ID") \
-        WHERE terms."ONTOLOGY_NAME" =\'histopathology\' and  terms2."ONTOLOGY_NAME" = \'histopathology\')'
+        INNER JOIN input_onto_etox_ontology_terms terms on ( onto.child_term = terms."ONTOLOGY_TERM_ID") \
+        INNER JOIN input_onto_etox_ontology_terms terms2 on ( onto.parent_term= terms2."ONTOLOGY_TERM_ID") \
+        WHERE terms."ONTOLOGY_NAME" =\'histopathology\' and terms2."ONTOLOGY_NAME" = \'histopathology\')'
            
     df = pd.read_sql(cmd, con=conn)
+    df = df[df.parent_term != 'morphologic change']
+    find_file = "morph_changes_ontology.pkl"
+    fname = os.path.join(os.path.dirname(__file__), "../data", find_file)
+    df.to_pickle(fname)
+
+    #
+    # Create and store anatomy and histopathology ontology dataframe
+    #
+    cmd = '( WITH RECURSIVE ontology AS ( \
+        select relations."ONTOLOGY_TERM_ID" as child_term, \
+        relations."ONTOLOGY_TERM_ID" as parent_term \
+        from input_onto_etox_ontology_relationships relations \
+        UNION \
+        select onto.child_term as child_term,\
+        relations."RELATED_ONTOLOGY_TERM_ID" as parent_term \
+        from input_onto_etox_ontology_relationships relations \
+        inner join ontology onto on (onto.parent_term=relations."ONTOLOGY_TERM_ID")\
+        )\
+        SELECT terms."TERM_NAME" as child_term, \
+            terms2."TERM_NAME" as parent_term, \
+            terms."ONTOLOGY_NAME" as ontology \
+        FROM ontology onto \
+        INNER JOIN input_onto_etox_ontology_terms terms on ( onto.child_term = terms."ONTOLOGY_TERM_ID") \
+        INNER JOIN input_onto_etox_ontology_terms terms2 on ( onto.parent_term= terms2."ONTOLOGY_TERM_ID") \
+        WHERE terms."ONTOLOGY_NAME" =\'anatomy\' and terms2."ONTOLOGY_NAME" =\'anatomy\' \
+    )UNION ( \
+    WITH RECURSIVE ontology AS ( \
+        select relations."ONTOLOGY_TERM_ID" as child_term, \
+            relations."ONTOLOGY_TERM_ID" as parent_term \
+            from input_onto_etox_ontology_relationships relations \
+        UNION \
+        select onto.child_term as child_term, \
+            relations."RELATED_ONTOLOGY_TERM_ID" as parent_term \
+            from input_onto_etox_ontology_relationships relations \
+            inner join ontology onto on (onto.parent_term=relations."ONTOLOGY_TERM_ID") \
+        ) \
+        SELECT terms."TERM_NAME" as child_term, \
+            terms2."TERM_NAME" as parent_term, \
+            terms."ONTOLOGY_NAME" as ontology \
+        FROM ontology onto \
+        INNER JOIN input_onto_etox_ontology_terms terms on ( onto.child_term = terms."ONTOLOGY_TERM_ID") \
+        INNER JOIN input_onto_etox_ontology_terms terms2 on ( onto.parent_term= terms2."ONTOLOGY_TERM_ID") \
+        WHERE terms."ONTOLOGY_NAME" =\'histopathology\' and terms2."ONTOLOGY_NAME" = \'histopathology\')'
+           
+    df = pd.read_sql(cmd, con=conn)
+    df = df[df.parent_term != 'morphologic change']
     find_file = "ontology.pkl"
-    fname = os.path.join(os.path.dirname(__file__), "../data",  find_file)
+    fname = os.path.join(os.path.dirname(__file__), "../data", find_file)
+    df.to_pickle(fname)
+
+    #
+    # Create and store anatomy and histopathology ontology dataframe
+    #
+    cmd = '( WITH RECURSIVE ontology AS ( \
+        select relations."ONTOLOGY_TERM_ID" as child_term, \
+        relations."ONTOLOGY_TERM_ID" as parent_term \
+        from input_onto_etox_ontology_relationships relations \
+        UNION \
+        select onto.child_term as child_term,\
+        relations."RELATED_ONTOLOGY_TERM_ID" as parent_term \
+        from input_onto_etox_ontology_relationships relations \
+        inner join ontology onto on (onto.parent_term=relations."ONTOLOGY_TERM_ID")\
+        )\
+        SELECT terms."TERM_NAME" as child_term, \
+            terms2."TERM_NAME" as parent_term, \
+            terms."ONTOLOGY_NAME" as ontology \
+        FROM ontology onto \
+        INNER JOIN input_onto_etox_ontology_terms terms on ( onto.child_term = terms."ONTOLOGY_TERM_ID") \
+        INNER JOIN input_onto_etox_ontology_terms terms2 on ( onto.parent_term= terms2."ONTOLOGY_TERM_ID") \
+        WHERE terms."ONTOLOGY_NAME" =\'anatomy\' and terms2."ONTOLOGY_NAME" =\'anatomy\' \
+    )UNION ( \
+    WITH RECURSIVE ontology AS ( \
+        select relations."ONTOLOGY_TERM_ID" as child_term, \
+            relations."ONTOLOGY_TERM_ID" as parent_term \
+            from input_onto_etox_ontology_relationships relations \
+        UNION \
+        select onto.child_term as child_term, \
+            relations."RELATED_ONTOLOGY_TERM_ID" as parent_term \
+            from input_onto_etox_ontology_relationships relations \
+            inner join ontology onto on (onto.parent_term=relations."ONTOLOGY_TERM_ID") \
+        ) \
+        SELECT terms."TERM_NAME" as child_term, \
+            terms2."TERM_NAME" as parent_term, \
+            terms."ONTOLOGY_NAME" as ontology \
+        FROM ontology onto \
+        INNER JOIN input_onto_etox_ontology_terms terms on ( onto.child_term = terms."ONTOLOGY_TERM_ID") \
+        INNER JOIN input_onto_etox_ontology_terms terms2 on ( onto.parent_term= terms2."ONTOLOGY_TERM_ID") \
+        WHERE terms."ONTOLOGY_NAME" =\'histopathology\' and terms2."ONTOLOGY_NAME" = \'histopathology\')'
+           
+    df = pd.read_sql(cmd, con=conn)
+    df = df[df.parent_term != 'morphologic change']
+    find_file = "ontology.pkl"
+    fname = os.path.join(os.path.dirname(__file__), "../data", find_file)
     df.to_pickle(fname)
 
     #
@@ -133,7 +232,7 @@ def run(args):
         norm_d[normalised_upper] = normalised
     
     norm_file = 'normalisation.pkl'
-    fname = os.path.join(os.path.dirname(__file__), '../data',  norm_file)
+    fname = os.path.join(os.path.dirname(__file__), '../data', norm_file)
     with open(fname, 'wb') as f:
         pickle.dump(norm_d, f)
 
@@ -153,5 +252,5 @@ def main ():
     args = parser.parse_args()
     run(args)
 
-if __name__ == '__main__':    
+if __name__ == '__main__':
     main()
