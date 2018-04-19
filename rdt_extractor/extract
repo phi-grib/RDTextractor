@@ -28,14 +28,14 @@ pd.set_option('chained_assignment', None)
 import cx_Oracle
 import rdt_extractor
 
+packagedir = rdt_extractor.__path__[0]
+
 # Load ontology dataframe
 onto_file = 'anatomy_ontology.pkl'
-packagedir = rdt_extractor.__path__[0]
 fname = os.path.join(packagedir, '../data',  onto_file)
 onto_anatomy_df = pd.read_pickle(fname)
 
 onto_file = 'morph_changes_ontology.pkl'
-packagedir = rdt_extractor.__path__[0]
 fname = os.path.join(packagedir, '../data',  onto_file)
 onto_histopatho_df = pd.read_pickle(fname)
 
@@ -238,12 +238,11 @@ def expand(df,args):
     Expand observations and organs based on the expanded
     hierarchies of ontologies 
     """
-    global onto_histopatho_df 
     columns = df.columns
-    if args.observation is not None:
-        onto_histopatho_df = onto_histopatho_df[onto_histopatho_df.parent_term.isin(args.observation)]
        
     # Expand anatomical entities based on the expanded ontology
+    if args.organ is not None:
+        onto_anatomy_df = onto_anatomy_df[onto_anatomy_df.parent_term.isin(args.organ)]
     out_df = pd.merge(df, onto_anatomy_df, how='left', left_on='organ_normalised', right_on='child_term')
     # Select and rename columns
     out_df = out_df[['study_id','relevance','observation_normalised','parent_term','dose',
@@ -252,6 +251,8 @@ def expand(df,args):
     out_df.drop_duplicates(inplace=True)
    
     # Expand observations based on the expanded ontology
+    if args.observation is not None:
+        onto_histopatho_df = onto_histopatho_df[onto_histopatho_df.parent_term.isin(args.observation)]
     out_df = pd.merge(out_df, onto_histopatho_df, how='left', left_on='observation_normalised', 
                         right_on='child_term')
     # Select and rename columns
