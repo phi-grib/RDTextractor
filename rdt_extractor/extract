@@ -281,10 +281,8 @@ def expand(df,args):
             observation_dict.update({n: observation for n in related_observation.child_term})
 
         findings_out=df[df['observation_normalised'].isin(all_observations)]
-        findings_out.loc[:,'observation_normalised']=df['observation_normalised'].map(observation_dict)        
-
-
-    
+        findings_out.loc[:,'observation_normalised']=df['observation_normalised'].map(observation_dict)
+            
     return findings_out
 
 def get_stats(group):
