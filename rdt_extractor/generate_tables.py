@@ -78,8 +78,7 @@ def run(args):
         inner join ontology onto on (onto.parent_term=relations."ONTOLOGY_TERM_ID")\
         )\
         SELECT terms."TERM_NAME" as child_term, \
-            terms2."TERM_NAME" as parent_term, \
-            terms."ONTOLOGY_NAME" as ontology \
+            terms2."TERM_NAME" as parent_term \
         FROM ontology onto \
         INNER JOIN input_onto_etox_ontology_terms terms on ( onto.child_term = terms."ONTOLOGY_TERM_ID") \
         INNER JOIN input_onto_etox_ontology_terms terms2 on ( onto.parent_term= terms2."ONTOLOGY_TERM_ID") \
@@ -87,6 +86,8 @@ def run(args):
            
     df = pd.read_sql(cmd, con=conn)
     find_file = "anatomy_ontology.pkl"
+    df.dropna(axis=0, how='any', inplace=True)
+    df.drop_duplicates(inplace=True)
     fname = os.path.join(os.path.dirname(__file__), "../data", find_file)
     df.to_pickle(fname)
 
@@ -104,8 +105,7 @@ def run(args):
             inner join ontology onto on (onto.parent_term=relations."ONTOLOGY_TERM_ID") \
         ) \
         SELECT terms."TERM_NAME" as child_term, \
-            terms2."TERM_NAME" as parent_term, \
-            terms."ONTOLOGY_NAME" as ontology \
+            terms2."TERM_NAME" as parent_term \
         FROM ontology onto \
         INNER JOIN input_onto_etox_ontology_terms terms on ( onto.child_term = terms."ONTOLOGY_TERM_ID") \
         INNER JOIN input_onto_etox_ontology_terms terms2 on ( onto.parent_term= terms2."ONTOLOGY_TERM_ID") \
@@ -114,6 +114,8 @@ def run(args):
     df = pd.read_sql(cmd, con=conn)
     df = df[df.parent_term != 'morphologic change']
     find_file = "morph_changes_ontology.pkl"
+    df.dropna(axis=0, how='any', inplace=True)
+    df.drop_duplicates(inplace=True)
     fname = os.path.join(os.path.dirname(__file__), "../data", find_file)
     df.to_pickle(fname)
 

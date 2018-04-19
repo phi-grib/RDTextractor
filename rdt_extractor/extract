@@ -238,6 +238,7 @@ def expand(df,args):
     Expand observations and organs based on the expanded
     hierarchies of ontologies 
     """
+    global onto_histopatho_df 
     columns = df.columns
     if args.observation is not None:
         onto_histopatho_df = onto_histopatho_df[onto_histopatho_df.parent_term.isin(args.observation)]
@@ -285,7 +286,6 @@ def run(args):
                         right_index=False, sort=False)
     relevant_find.report_number = relevant_find.report_number.fillna('NA')
     
-    print ("Length: "+str(len(relevant_find)))
     start=time.time()
     ###################################
     # Get stats for relevant findings #
