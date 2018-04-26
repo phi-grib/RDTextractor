@@ -33,7 +33,7 @@ def run(args):
     #
     # Create and store study dataframe
     #
-    cmd = "SELECT study_id, subst_id, normalised_sex, \
+    cmd = "SELECT study_id, subst_id, \
         normalised_administration_route, normalised_species, \
         exposure_period_days, report_number \
         FROM study;"
@@ -51,7 +51,8 @@ def run(args):
                 WHEN relevance IS NULL THEN 'NA' \
                 WHEN relevance = 'Treatment related' THEN 'treatment related' \
                 ELSE relevance END) AS relevance,\
-                observation_normalised, organ_normalised, dose \
+                observation_normalised, organ_normalised, normalised_sex, \
+                dose \
 	            FROM findings_all \
                     WHERE source = 'HistopathologicalFinding' \
                     AND observation_normalised IS NOT NULL \

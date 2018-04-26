@@ -34,6 +34,8 @@ packagedir = rdt_extractor.__path__[0]
 fname = os.path.join(packagedir, '../data',  onto_file)
 onto_df = pd.read_pickle(fname)
 
+oracle_port = '1521'
+
 def load_version(args):
 
     """
@@ -64,14 +66,14 @@ def load_version(args):
         fname = os.path.join(packagedir, '../data',  norm_file)
         normD = pd.read_pickle(fname)
 
-        dsn_tns = cx_Oracle.makedsn('localhost', '1521', args.sid)
+        dsn_tns = cx_Oracle.makedsn(args.host, oracle_port, args.sid)
 
-        con = cx_Oracle.connect(args.user, args.passw)
+        con = cx_Oracle.connect(args.user, args.passw, dsn_tns)
         cur = con.cursor()
 
         # Generate normalised study dataframe
         sys.stdout.write('\tLoading studies\n')
-        cmd = "SELECT SUBST_ID, SUBST_ID, STANDARDISED_SEX, STANDARDISED_ROUTE, \
+        cmd = "SELECT SUBST_ID, SUBST_ID, STANDARDISED_ROUTE, \
             STANDARDISED_SPECIES, EXPOSURE_PERIOD, REPORT_NUMBER \
             FROM STUDY_DESIGN \
             JOIN SUBSTANCE_IDS ON STUDY_DESIGN.STRUCTURE_LUID = SUBSTANCE_IDS.LUID"
@@ -93,101 +95,110 @@ def load_version(args):
                  species = normD[species]
              tmp_table.append([study_id, subst_id, sex, route, species, 
                                 exposure, report_number])
-        study_df = pd.DataFrame(tmp_table, columns=['study_id', 'subst_id', 'normalised_sex',
+        study_df = pd.DataFrame(tmp_table, columns=['study_id', 'subst_id',
                         'normalised_administration_route', 'normalised_species', 
                         'exposure_period_days', 'report_number'])
 
         # Generate normalised findings dataframe
         sys.stdout.write('\tLoading findings\n')
         cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
-            STANDARDISED_PATHOLOGY, STANDARDISED_ORGAN, DOSE \
+            STANDARDISED_PATHOLOGY, STANDARDISED_ORGAN, \
+            STANDARDISED_SEX, DOSE \
             FROM HISTOPATHOLOGICALFI \
             WHERE STANDARDISED_PATHOLOGY IS NOT NULL \
             AND STANDARDISED_ORGAN IS NOT NULL"
         cur.execute(cmd)
         results = cur.fetchall()
         tmp_table = []
-        for (study_id, relevance, observation, organ, dose) in results:
-             if observation is None or observation.upper() == 'EXCLUDED TERM':
+        for (study_id, relevance, observation, organ, sex, dose) in results:
+            if observation is None or observation.upper() == 'EXCLUDED TERM':
                  observation = ''
-             else:
+            else:
                  observation_upper = observation.upper()
-                 if observation_upper in normD:
-                     observation = normD[observation_upper]
+                if observation_upper in normD:
+                    observation = normD[observation_upper]
  
-             if organ is None or organ.upper() == 'EXCLUDED TERM':
-                 organ = ''
-             else:
-                 organ_upper = organ.upper()
-                 if organ_upper in normD:
-                     organ = normD[organ_upper]
+            if organ is None or organ.upper() == 'EXCLUDED TERM':
+                organ = ''
+            else:
+                organ_upper = organ.upper()
+                if organ_upper in normD:
+                    organ = normD[organ_upper]
+
+            if sex is None or sex.upper() == 'EXCLUDED TERM':
+                sex = ''
+            else:
+                sex_upper = sex.upper()
+                if sex_upper in normD:
+                    sex = normD[sex_upper]
              
              if relevance is None:
                  relevance = 'NA'
-             tmp_table.append([study_id, relevance, observation, organ, dose])
+             tmp_table.append([study_id, relevance, observation, organ, sex, dose])
         
-        cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
-            FINDING, DOSE \
-            FROM CLINICALCHEMICALFIN"
-        cur.execute(cmd)
-        results = cur.fetchall()
-        for (study_id, relevance, observation, dose) in results:
-             if observation is None or observation.upper() == 'EXCLUDED TERM':
-                 observation = ''
-             else:
-                 observation_upper = observation.upper()
-                 if observation_upper in normD:
-                     observation = normD[observation_upper]
-             organ = ''
+        # cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
+        #     FINDING, DOSE \
+        #     FROM CLINICALCHEMICALFIN"
+        # cur.execute(cmd)
+        # results = cur.fetchall()
+        # for (study_id, relevance, observation, dose) in results:
+        #      if observation is None or observation.upper() == 'EXCLUDED TERM':
+        #          observation = ''
+        #      else:
+        #          observation_upper = observation.upper()
+        #          if observation_upper in normD:
+        #              observation = normD[observation_upper]
+        #      organ = ''
 
-             if relevance is None:
-                 relevance = 'NA'
-             tmp_table.append([study_id, relevance, observation, organ, dose])
+        #      if relevance is None:
+        #          relevance = 'NA'
+        #      tmp_table.append([study_id, relevance, observation, organ, dose])
 
-        cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
-            FINDING, DOSE \
-            FROM CLINICALHEMATOLOGIC"
-        cur.execute(cmd)
-        results = cur.fetchall()
-        for (study_id, relevance, observation, dose) in results:
-             if observation is None or observation.upper() == 'EXCLUDED TERM':
-                 observation = ''
-             else:
-                 observation_upper = observation.upper()
-                 if observation_upper in normD:
-                     observation = normD[observation_upper]
-             organ = ''
+        # cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
+        #     FINDING, DOSE \
+        #     FROM CLINICALHEMATOLOGIC"
+        # cur.execute(cmd)
+        # results = cur.fetchall()
+        # for (study_id, relevance, observation, dose) in results:
+        #      if observation is None or observation.upper() == 'EXCLUDED TERM':
+        #          observation = ''
+        #      else:
+        #          observation_upper = observation.upper()
+        #          if observation_upper in normD:
+        #              observation = normD[observation_upper]
+        #      organ = ''
 
-             if relevance is None:
-                 relevance = 'NA'
-             tmp_table.append([study_id, relevance, observation, organ, dose])
+        #      if relevance is None:
+        #          relevance = 'NA'
+        #      tmp_table.append([study_id, relevance, observation, organ, dose])
 
-        cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
-            FINDING, STANDARDISED_ORGAN, DOSE \
-            FROM ORGAN_WEIGHTS"
-        cur.execute(cmd)
-        results = cur.fetchall()
-        for (study_id, relevance, observation, organ, dose) in results:
-             if observation is None or observation.upper() == 'EXCLUDED TERM':
-                 observation = ''
-             else:
-                 observation_upper = observation.upper()
-                 if observation_upper in normD:
-                     observation = normD[observation_upper]
+        # cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
+        #     FINDING, STANDARDISED_ORGAN, DOSE \
+        #     FROM ORGAN_WEIGHTS"
+        # cur.execute(cmd)
+        # results = cur.fetchall()
+        # for (study_id, relevance, observation, organ, dose) in results:
+        #      if observation is None or observation.upper() == 'EXCLUDED TERM':
+        #          observation = ''
+        #      else:
+        #          observation_upper = observation.upper()
+        #          if observation_upper in normD:
+        #              observation = normD[observation_upper]
 
-             if organ is None or organ.upper() == 'EXCLUDED TERM':
-                 organ = ''
-             else:
-                 organ_upper = organ.upper()
-                 if organ_upper in normD:
-                     organ = normD[organ_upper]
+        #      if organ is None or organ.upper() == 'EXCLUDED TERM':
+        #          organ = ''
+        #      else:
+        #          organ_upper = organ.upper()
+        #          if organ_upper in normD:
+        #              organ = normD[organ_upper]
 
-             if relevance is None:
-                 relevance = 'NA'
-             tmp_table.append([study_id, relevance, observation, organ, dose])
+        #      if relevance is None:
+        #          relevance = 'NA'
+        #      tmp_table.append([study_id, relevance, observation, organ, dose])
 
         find_df = pd.DataFrame(tmp_table, columns=['study_id', 'relevance',
-                        'observation_normalised', 'organ_normalised', 'dose'])
+                        'observation_normalised', 'organ_normalised',
+                        'normalised_sex', 'dose'])
 
         con.close()
 
@@ -219,10 +230,6 @@ def filter_study(args,study_df):
     # Species
     if args.species:
         df = df[df.normalised_species.str.lower().isin([x.lower() for x in args.species])]
-        
-    # Study's level sex
-    if args.sex:
-        df = df[df.normalised_sex.str.lower() == args.sex.lower()]
     
     return df
 
@@ -232,7 +239,6 @@ def expand(df,args):
     Expand standardized observation and normalized organs based on
     the hierarchy of ontologies stored in onto_df
     """
-    # Create an empty output dataframe
        
     #########
     # ORGAN #
@@ -257,13 +263,14 @@ def expand(df,args):
     if args.observation is None:
       
         onto_histopatho=onto_df[(onto_df['ontology'] == 'histopathology') 
-                    & (onto_df['parent_term']!="morphologic change")]
+                    & (onto_df['parent_term']!='morphologic change')]
 
         findings_out = pd.merge(df, onto_histopatho, how='left',
                                 left_on='observation_normalised', 
                                 right_on='child_term')
         findings_out = findings_out[['study_id','relevance','parent_term',
-                                    'organ_normalised','dose','subst_id','report_number']]
+                                    'organ_normalised','normalised_sex',
+                                    'dose','subst_id','report_number']]
         findings_out.columns = df.columns
         findings_out.drop_duplicates(inplace=True)
     
@@ -308,8 +315,11 @@ def run(args):
                         how='left', on='study_id', left_index=False,
                         right_index=False, sort=False)
     relevant_find.report_number = relevant_find.report_number.fillna('NA')
+
+    # Findings' level sex filtering
+    if args.sex:
+        relevant_find = relevant_find[relevant_find.normalised_sex.str.lower() == args.sex.lower()]
     
-    print ("Length: "+str(len(relevant_find)))
     start=time.time()
     ###################################
     # Get stats for relevant findings #
@@ -401,6 +411,9 @@ def main ():
     parser.add_argument('-v', '--version', help='Vitic database version \
             (default: oracle).', 
             choices=['local', 'oracle'], default= 'oracle', required=False)
+    parser.add_argument('-n', '--host', help='If working with Vitic\'s \
+            Oracle database, provide the Oracle host\'s.', 
+            required=False)
     parser.add_argument('-d', '--sid', help='If working with Vitic\'s \
             Oracle database, provide the Oracle SID\'s.', 
             required=False)
@@ -437,8 +450,6 @@ def main ():
             choices=['mouse', 'rat', 'hamster', 'guinea pig', 'rabbit', 'dog', 
             'pig', 'marmoset', 'monkey', 'baboon'], type= str.lower,
             nargs='*', required=False)
-    parser.add_argument('-x', '--sex', help='Study design sex.', 
-            choices=['F', 'M', 'Both'], required=False)
 
     # Finding-related arguments
     parser.add_argument('-a', '--organ', help='Anatomical entity that the \
@@ -452,6 +463,8 @@ def main ():
     parser.add_argument('-t', '--treatment_related', help='Keep only treatment-related \
             findings.', action='store_true', default= False,
             required=False)
+    parser.add_argument('-x', '--sex', help='Finding\'s sex.', 
+            choices=['F', 'M', 'Both'], required=False)
     
     # Output file base name
     parser.add_argument('-o', '--output_basename', help='Output file base name. Two output \
@@ -460,8 +473,9 @@ def main ():
             default= 'output', required=False)
 
     args = parser.parse_args()
-    if args.version == 'oracle' and args.passw is None:
-       raise argparse.ArgumentTypeError('Password required to connect to the Oracle database.')
+    if args.version == 'oracle' and (args.host is None or args.passw is None or 
+                                    args.sid is None or args.user is None):
+       raise argparse.ArgumentTypeError('Oracle credentials required to connect to the Oracle database.')
 
     if args.observation:
         right_case_observations = []
