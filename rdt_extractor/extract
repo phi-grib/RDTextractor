@@ -352,6 +352,7 @@ def run(args):
     # Aggragate by substance and finding #
     ######################################
     # Define finding as organ+observation
+    filtered_find.fillna(value={'organ_normalised': 'NA', 'observation_normalised': 'NA'}, inplace=True)
     filtered_find['finding'] = filtered_find.apply(lambda row: row.organ_normalised+'_'+row.observation_normalised, axis=1)
     filtered_find = filtered_find[['subst_id', 'finding', 'dose']]
 
