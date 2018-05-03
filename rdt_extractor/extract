@@ -73,16 +73,14 @@ def load_version(args):
 
         # Generate normalised study dataframe
         sys.stdout.write('\tLoading studies\n')
-        cmd = "SELECT SUBST_ID, SUBST_ID, STANDARDISED_ROUTE, \
+        cmd = "SELECT STUDY_ID, SUBST_ID, STANDARDISED_ROUTE, \
             STANDARDISED_SPECIES, EXPOSURE_PERIOD, REPORT_NUMBER \
             FROM STUDY_DESIGN \
             JOIN SUBSTANCE_IDS ON STUDY_DESIGN.STRUCTURE_LUID = SUBSTANCE_IDS.LUID"
         cur.execute(cmd)
         results = cur.fetchall()
         tmp_table = []
-        for (study_id, subst_id, sex, route, species, exposure, report_number) in results:
-             sex = sex.upper()
-             sex = normD[sex]
+        for (study_id, subst_id, route, species, exposure, report_number) in results:
              if route is None:
                  route = ''
              else:
@@ -93,7 +91,7 @@ def load_version(args):
              else:
                  species = species.upper()
                  species = normD[species]
-             tmp_table.append([study_id, subst_id, sex, route, species, 
+             tmp_table.append([study_id, subst_id, route, species, 
                                 exposure, report_number])
         study_df = pd.DataFrame(tmp_table, columns=['study_id', 'subst_id',
                         'normalised_administration_route', 'normalised_species', 
@@ -115,7 +113,7 @@ def load_version(args):
                  observation = ''
             else:
                  observation_upper = observation.upper()
-                if observation_upper in normD:
+                 if observation_upper in normD:
                     observation = normD[observation_upper]
  
             if organ is None or organ.upper() == 'EXCLUDED TERM':
@@ -132,9 +130,9 @@ def load_version(args):
                 if sex_upper in normD:
                     sex = normD[sex_upper]
              
-             if relevance is None:
+            if relevance is None:
                  relevance = 'NA'
-             tmp_table.append([study_id, relevance, observation, organ, sex, dose])
+            tmp_table.append([study_id, relevance, observation, organ, sex, dose])
         
         # cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
         #     FINDING, DOSE \
