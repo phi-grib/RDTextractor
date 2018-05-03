@@ -28,6 +28,8 @@ Anatomical entity that the finding refers to (case insensitive). You can filter 
   - Version-related arguments:
     - -v / --version _{local, oracle}_
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Vitic database version (default: oracle).
+    - -n / --host 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with the Oracle database, provide the Oracle DB's host.
     - -d / --sid SID
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with the Oracle database, provide the Oracle SID's.
     - -u / --user USER
