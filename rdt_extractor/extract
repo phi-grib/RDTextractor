@@ -197,8 +197,6 @@ def load_version(args):
         find_df = pd.DataFrame(tmp_table, columns=['study_id', 'relevance',
                         'observation_normalised', 'organ_normalised',
                         'normalised_sex', 'dose'])
-        find_df.to_csv('find_df')
-        study_df.to_csv('study_df')
 
         con.close()
 
