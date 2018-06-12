@@ -34,11 +34,14 @@ def run(args):
     # Create and store study dataframe
     #
     cmd = "SELECT study_id, subst_id, \
-        normalised_administration_route, normalised_species, \
+        normalised_administration_route, normalised_species, normalised_strain, \
         exposure_period_days, report_number \
         FROM study;"
     
     df = pd.read_sql(cmd, con=conn)
+    df.normalised_administration_route = df.normalised_administration_route.str.capitalize()
+    df.normalised_species = df.normalised_species.str.capitalize()
+    df.normalised_strain = df.normalised_strain.str.capitalize()
     study_file = "study.pkl"
     fname = os.path.join(os.path.dirname(__file__), "../data",  study_file)
     df.to_pickle(fname)
@@ -47,20 +50,22 @@ def run(args):
     # Create and store finding dataframe
     #
     cmd = "SELECT study_id, \
-                (CASE \
-                WHEN relevance IS NULL THEN 'NA' \
-                WHEN relevance = 'Treatment related' THEN 'treatment related' \
-                ELSE relevance END) AS relevance,\
+                relevance,\
                 observation_normalised, organ_normalised, normalised_sex, \
-                dose \
+                dose, grade \
 	            FROM findings_all \
                     WHERE source = 'HistopathologicalFinding' \
                     AND observation_normalised IS NOT NULL \
                     AND organ_normalised IS NOT NULL"
     df = pd.read_sql(cmd, con=conn)
+    df.relevance = df.relevance.str.capitalize()
     df.relevance = df.relevance.fillna('NA')
+    df.observation_normalised = df.observation_normalised.str.capitalize()
     df.observation_normalised = df.observation_normalised.fillna('NA')
+    df.organ_normalised = df.organ_normalised.str.capitalize()
     df.organ_normalised = df.organ_normalised.fillna('NA')
+    df.grade = df.grade.str.capitalize()
+    df.grade = df.grade.fillna('NA')
     find_file = 'findings.pkl.gz'
     fname = os.path.join(os.path.dirname(__file__), "../data",  find_file)
     df.to_pickle(fname, compression='gzip')
@@ -105,6 +110,8 @@ def run(args):
         WHERE terms."ONTOLOGY_NAME" =\'histopathology\' and  terms2."ONTOLOGY_NAME" = \'histopathology\')'
            
     df = pd.read_sql(cmd, con=conn)
+    df.child_term = df.child_term.str.capitalize()
+    df.parent_term = df.parent_term.str.capitalize()
     find_file = "ontology.pkl"
     fname = os.path.join(os.path.dirname(__file__), "../data",  find_file)
     df.to_pickle(fname)
