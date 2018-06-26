@@ -10,7 +10,7 @@ data_files = [
 
 setup(name='rdt_extractor',
       version='0.1',
-      licence='GNU GPLv3',
+      license='GNU GPLv3',
       description='Script to filter and extract data from the eTox Vitic database.',
       url='https://github.com/phi-grib/RDTextractor',
       download_url='https://github.com/phi-grib/RDTextractor.git',
