@@ -1,5 +1,7 @@
 # RDTextractor
 
+## !! Requires python3.6 !!
+
 ## Installation
 `pip install -r requirements.txt`  
 `python setup.py install`
