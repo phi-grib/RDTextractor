@@ -23,22 +23,48 @@
 import pandas as pd
 import argparse, os
 import psycopg2, pickle
+from rdkit.Chem import PandasTools
 
 def run(args):
 
-    conn = psycopg2.connect(host='172.20.16.76', dbname='vitic2016_1', 
+    # conn = psycopg2.connect(host='172.20.16.76', dbname='vitic2016_1', 
+    #                         user=args.user, password=args.passw)
+    conn = psycopg2.connect(host='172.20.16.76', dbname='vitic2016_test', 
                             user=args.user, password=args.passw)
     curs = conn.cursor()
 
     #
+    # Create and store compound dataframe
+    #
+    ## In the Postgres DB smiles are all lower case!!!! 
+    # cmd = "SELECT smiles, subst_id, casno AS cas_number, common_name, molecular_weight, \
+    #         pharmacological_action \
+    #         FROM SUBSTANCE_IDS"    
+    # df = pd.read_sql(cmd, con=conn)
+    # df.pharmacological_action = df.pharmacological_action.str.capitalize()
+    # # Add molecule object
+    # smiles_df = pd.DataFrame(df.smiles.dropna().unique(), columns=['smiles'])
+    # PandasTools.AddMoleculeColumnToFrame(smiles_df,'smiles','molecule',
+    #                                     includeFingerprints=True)
+    # df = pd.merge(df, smiles_df, 'left', on='smiles')
+    # compound_file = "compound.pkl"
+    # fname = os.path.join(os.path.dirname(__file__), "../data",  compound_file)
+    # df.to_pickle(fname)
+
+    #
     # Create and store study dataframe
     #
-    cmd = "SELECT study_id, subst_id, \
-        normalised_administration_route, normalised_species, normalised_strain, \
-        exposure_period_days, report_number \
-        FROM study;"
+    # cmd = "SELECT study_id, subst_id, \
+    #     normalised_administration_route, normalised_species, normalised_strain, \
+    #     exposure_period_days, report_number \
+    #     FROM study;"
+    cmd = "SELECT study_design.luid AS study_id, subst_id, STANDARDISED_ROUTE AS normalised_administration_route, \
+            STANDARDISED_SPECIES as normalised_species, STANDARDISED_STRAIN AS normalised_strain, EXPOSURE_PERIOD AS exposure_period_days, REPORT_NUMBER \
+            FROM STUDY_DESIGN \
+            JOIN SUBSTANCE_IDS ON STUDY_DESIGN.STRUCTURE_LUID = SUBSTANCE_IDS.LUID"
     
     df = pd.read_sql(cmd, con=conn)
+    df.subst_id = df.subst_id.str.upper()
     df.normalised_administration_route = df.normalised_administration_route.str.capitalize()
     df.normalised_species = df.normalised_species.str.capitalize()
     df.normalised_strain = df.normalised_strain.str.capitalize()
@@ -49,21 +75,50 @@ def run(args):
     #
     # Create and store finding dataframe
     #
-    cmd = "SELECT study_id, \
-                relevance,\
-                observation_normalised, organ_normalised, normalised_sex, \
-                dose, grade \
-	            FROM findings_all \
-                    WHERE source = 'HistopathologicalFinding' \
-                    AND observation_normalised IS NOT NULL \
-                    AND organ_normalised IS NOT NULL"
-    df = pd.read_sql(cmd, con=conn)
+    # cmd = "SELECT study_id, \
+    #             relevance,\
+    #             observation_normalised, organ_normalised, normalised_sex, \
+    #             dose, grade \
+	#             FROM findings_all \
+    #                 WHERE source = 'HistopathologicalFinding' \
+    #                 AND observation_normalised IS NOT NULL \
+    #                 AND organ_normalised IS NOT NULL"
+    cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
+            STANDARDISED_PATHOLOGY AS observation_normalised, STANDARDISED_ORGAN AS organ_normalised, \
+            STANDARDISED_SEX AS normalised_sex, DOSE, grade \
+            FROM HISTOPATHOLOGICALFI \
+            WHERE STANDARDISED_PATHOLOGY IS NOT NULL \
+            AND STANDARDISED_ORGAN IS NOT NULL"
+    hp_df = pd.read_sql(cmd, con=conn)
+    hp_df['source'] = 'Histopathological'
+
+    cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
+            clinical_sign AS observation_normalised, \
+            STANDARDISED_SEX AS normalised_sex, DOSE, grade \
+            FROM clinical_signs \
+            WHERE clinical_sign IS NOT NULL"
+    cs_df = pd.read_sql(cmd, con=conn)
+    cs_df['source'] = 'ClinicalSigns'
+
+    cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
+            stand_gross_pathology AS observation_normalised, \
+            STANDARDISED_ORGAN AS organ_normalised, \
+            STANDARDISED_SEX AS normalised_sex, DOSE, grade \
+            FROM gross_necropsy \
+            WHERE stand_gross_pathology IS NOT NULL \
+            AND STANDARDISED_ORGAN IS NOT NULL"
+    gn_df = pd.read_sql(cmd, con=conn)
+    gn_df['source'] = 'GrossNecropsy'
+
+    df = pd.concat([hp_df, cs_df, gn_df])
+
     df.relevance = df.relevance.str.capitalize()
     df.relevance = df.relevance.fillna('NA')
     df.observation_normalised = df.observation_normalised.str.capitalize()
     df.observation_normalised = df.observation_normalised.fillna('NA')
     df.organ_normalised = df.organ_normalised.str.capitalize()
     df.organ_normalised = df.organ_normalised.fillna('NA')
+    df.normalised_sex = df.normalised_sex.str.upper()
     df.grade = df.grade.str.capitalize()
     df.grade = df.grade.fillna('NA')
     find_file = 'findings.pkl.gz'
