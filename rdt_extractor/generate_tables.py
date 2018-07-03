@@ -114,9 +114,9 @@ def run(args):
 
     df.relevance = df.relevance.str.capitalize()
     df.relevance = df.relevance.fillna('NA')
-    df.observation_normalised = df.observation_normalised.str.capitalize()
+    # df.observation_normalised = df.observation_normalised.str.capitalize()
     df.observation_normalised = df.observation_normalised.fillna('NA')
-    df.organ_normalised = df.organ_normalised.str.capitalize()
+    # df.organ_normalised = df.organ_normalised.str.capitalize()
     df.organ_normalised = df.organ_normalised.fillna('NA')
     df.normalised_sex = df.normalised_sex.str.upper()
     df.grade = df.grade.str.capitalize()
@@ -124,6 +124,8 @@ def run(args):
     find_file = 'findings.pkl.gz'
     fname = os.path.join(os.path.dirname(__file__), "../data",  find_file)
     df.to_pickle(fname, compression='gzip')
+
+    sys.exit()
 
     #
     # Create and store anatomy and histopathology ontology dataframe
