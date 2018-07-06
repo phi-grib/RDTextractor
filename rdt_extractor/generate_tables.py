@@ -59,7 +59,8 @@ def run(args):
     #     exposure_period_days, report_number \
     #     FROM study;"
     cmd = "SELECT study_design.luid AS study_id, subst_id, STANDARDISED_ROUTE AS normalised_administration_route, \
-            STANDARDISED_SPECIES as normalised_species, STANDARDISED_STRAIN AS normalised_strain, EXPOSURE_PERIOD AS exposure_period_days, REPORT_NUMBER \
+            STANDARDISED_SPECIES as normalised_species, STANDARDISED_STRAIN AS normalised_strain, EXPOSURE_PERIOD AS exposure_period_days, REPORT_NUMBER, \
+            source_company \
             FROM STUDY_DESIGN \
             JOIN SUBSTANCE_IDS ON STUDY_DESIGN.STRUCTURE_LUID = SUBSTANCE_IDS.LUID"
     
@@ -114,9 +115,9 @@ def run(args):
 
     df.relevance = df.relevance.str.capitalize()
     df.relevance = df.relevance.fillna('NA')
-    # df.observation_normalised = df.observation_normalised.str.capitalize()
+    df.observation_normalised = df.observation_normalised.str.capitalize()
     df.observation_normalised = df.observation_normalised.fillna('NA')
-    # df.organ_normalised = df.organ_normalised.str.capitalize()
+    df.organ_normalised = df.organ_normalised.str.capitalize()
     df.organ_normalised = df.organ_normalised.fillna('NA')
     df.normalised_sex = df.normalised_sex.str.upper()
     df.grade = df.grade.str.capitalize()
