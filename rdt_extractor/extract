@@ -61,7 +61,9 @@ def load_version(args):
         # the dataframes                        #
         #########################################
 
+        #
         # Load normlisation lookup table
+        #
         norm_file = 'normalisation.pkl'
         fname = os.path.join(packagedir, '../data',  norm_file)
         normD = pd.read_pickle(fname)
@@ -71,16 +73,47 @@ def load_version(args):
         con = cx_Oracle.connect(args.user, args.passw, dsn_tns)
         cur = con.cursor()
 
+        #
+        # Compound information
+        #
+        cmd = "SELECT SUBST_ID, CASNO, COMMON_NAME, PHARMACOLOGICAL_ACTION, \
+            STANDARDISED_TARGET, STANDARDISED_ACTION, COMPANY_ID, SMILES, STATUS \
+            FROM SUBSTANCE_IDS AS si \
+	        JOIN PHARMACOLOGY AS p ON p.PARENT_LUID = si.LUID"
+        cur.execute(cmd)
+        results = cur.fetchall()
+        df = pd.DataFrame(results, columns=['subst_id', 'cas_number', 'common_name', 
+                            'pharmacological_action', 'target', 'action', 'company_id', 
+                            'smiles', 'status'])
+        df.study_id = df.study_id.astype(object)
+        df.to_pickle('compound.pkl')
+
+        sys.exit()
+
+
+        #
+        # Study information summary 
+        #
+        cmd = "SELECT STRUCTURE_LUID, PARENT_LUID, DOSE, STANDARDISED_SEX, NUMBER_OF_ANIMALS \
+            FROM ANIMALS_PER_GROUP_PER_SEX"
+        cur.execute(cmd)
+        results = cur.fetchall()
+        df = pd.DataFrame(results, columns=['subst_id', 'study_id', 'dose', 'sex', 'number_of_animals'])
+        df.study_id = df.study_id.astype(object)
+        df.to_pickle('animals_per_group_per_sex.pkl')
+
+        #
         # Generate normalised study dataframe
+        #
         sys.stdout.write('\tLoading studies\n')
         cmd = "SELECT STUDY_DESIGN.LUID, SUBST_ID, STANDARDISED_ROUTE, \
-            STANDARDISED_SPECIES, EXPOSURE_PERIOD, REPORT_NUMBER \
+            STANDARDISED_SPECIES, STANDARDISED_STRAIN, EXPOSURE_PERIOD, REPORT_NUMBER \
             FROM STUDY_DESIGN \
             JOIN SUBSTANCE_IDS ON STUDY_DESIGN.STRUCTURE_LUID = SUBSTANCE_IDS.LUID"
         cur.execute(cmd)
         results = cur.fetchall()
         tmp_table = []
-        for (study_id, subst_id, route, species, exposure, report_number) in results:
+        for (study_id, subst_id, route, species, strain, exposure, report_number) in results:
              if route is None:
                  route = ''
              else:
@@ -94,10 +127,11 @@ def load_version(args):
              tmp_table.append([study_id, subst_id, route, species, 
                                 exposure, report_number])
         study_df = pd.DataFrame(tmp_table, columns=['study_id', 'subst_id',
-                        'normalised_administration_route', 'normalised_species', 
-                        'exposure_period_days', 'report_number'])
+                        'normalised_administration_route', 'normalised_species', 'normalised_strain', 'exposure_period_days', 'report_number'])
 
+        #
         # Generate normalised findings dataframe
+        #
         sys.stdout.write('\tLoading findings\n')
         cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
             STANDARDISED_PATHOLOGY, STANDARDISED_ORGAN, \
@@ -108,7 +142,7 @@ def load_version(args):
         cur.execute(cmd)
         results = cur.fetchall()
         tmp_table = []
-        for (study_id, relevance, observation, organ, sex, dose) in results:
+        for (study_id, relevance, observation, parameter, sex, dose) in results:
             if observation is None or observation.upper() == 'EXCLUDED TERM':
                  observation = ''
             else:
@@ -116,12 +150,12 @@ def load_version(args):
                  if observation_upper in normD:
                     observation = normD[observation_upper]
  
-            if organ is None or organ.upper() == 'EXCLUDED TERM':
-                organ = ''
+            if parameter is None or parameter.upper() == 'EXCLUDED TERM':
+                parameter = ''
             else:
-                organ_upper = organ.upper()
-                if organ_upper in normD:
-                    organ = normD[organ_upper]
+                parameter_upper = parameter.upper()
+                if parameter_upper in normD:
+                    parameter = normD[parameter_upper]
 
             if sex is None or sex.upper() == 'EXCLUDED TERM':
                 sex = ''
@@ -132,78 +166,212 @@ def load_version(args):
              
             if relevance is None:
                  relevance = 'NA'
-            tmp_table.append([study_id, relevance, observation, organ, sex, dose])
-        
-        # cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
-        #     FINDING, DOSE \
-        #     FROM CLINICALCHEMICALFIN"
-        # cur.execute(cmd)
-        # results = cur.fetchall()
-        # for (study_id, relevance, observation, dose) in results:
-        #      if observation is None or observation.upper() == 'EXCLUDED TERM':
-        #          observation = ''
-        #      else:
-        #          observation_upper = observation.upper()
-        #          if observation_upper in normD:
-        #              observation = normD[observation_upper]
-        #      organ = ''
-
-        #      if relevance is None:
-        #          relevance = 'NA'
-        #      tmp_table.append([study_id, relevance, observation, organ, dose])
-
-        # cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
-        #     FINDING, DOSE \
-        #     FROM CLINICALHEMATOLOGIC"
-        # cur.execute(cmd)
-        # results = cur.fetchall()
-        # for (study_id, relevance, observation, dose) in results:
-        #      if observation is None or observation.upper() == 'EXCLUDED TERM':
-        #          observation = ''
-        #      else:
-        #          observation_upper = observation.upper()
-        #          if observation_upper in normD:
-        #              observation = normD[observation_upper]
-        #      organ = ''
-
-        #      if relevance is None:
-        #          relevance = 'NA'
-        #      tmp_table.append([study_id, relevance, observation, organ, dose])
-
-        # cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
-        #     FINDING, STANDARDISED_ORGAN, DOSE \
-        #     FROM ORGAN_WEIGHTS"
-        # cur.execute(cmd)
-        # results = cur.fetchall()
-        # for (study_id, relevance, observation, organ, dose) in results:
-        #      if observation is None or observation.upper() == 'EXCLUDED TERM':
-        #          observation = ''
-        #      else:
-        #          observation_upper = observation.upper()
-        #          if observation_upper in normD:
-        #              observation = normD[observation_upper]
-
-        #      if organ is None or organ.upper() == 'EXCLUDED TERM':
-        #          organ = ''
-        #      else:
-        #          organ_upper = organ.upper()
-        #          if organ_upper in normD:
-        #              organ = normD[organ_upper]
-
-        #      if relevance is None:
-        #          relevance = 'NA'
-        #      tmp_table.append([study_id, relevance, observation, organ, dose])
+            tmp_table.append([study_id, relevance, observation, parameter, sex, dose])
 
         find_df = pd.DataFrame(tmp_table, columns=['study_id', 'relevance',
                         'observation_normalised', 'organ_normalised',
                         'normalised_sex', 'dose'])
+        find_df['endpoint_type'] = 'Histopathlogical finding'
+        
+        # cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
+        #     FINDING, STANDARDISED_PARAMETER, \
+        #     STANDARDISED_SEX, DOSE \
+        #     FROM CLINICALCHEMICALFIN \
+        #     WHERE FINDING IS NOT NULL \
+        #     AND STANDARDISED_PARAMETER IS NOT NULL"
+        # cur.execute(cmd)
+        # results = cur.fetchall()
+        # tmp_table = []
+        # for (study_id, relevance, observation, parameter, sex, dose) in results:
+        #     if observation is None or observation.upper() == 'EXCLUDED TERM':
+        #          observation = ''
+        #     else:
+        #          observation_upper = observation.upper()
+        #          if observation_upper in normD:
+        #             observation = normD[observation_upper]
+ 
+        #     if parameter is None or parameter.upper() == 'EXCLUDED TERM':
+        #         parameter = ''
+        #     else:
+        #         parameter_upper = parameter.upper()
+        #         if parameter_upper in normD:
+        #             parameter = normD[parameter_upper]
+
+        #     if sex is None or sex.upper() == 'EXCLUDED TERM':
+        #         sex = ''
+        #     else:
+        #         sex_upper = sex.upper()
+        #         if sex_upper in normD:
+        #             sex = normD[sex_upper]
+             
+        #     if relevance is None:
+        #          relevance = 'NA'
+        #     tmp_table.append([study_id, relevance, observation, parameter, sex, dose])
+
+        # tmp_df = pd.DataFrame(tmp_table, columns=['study_id', 'relevance',
+        #                 'observation_normalised', 'organ_normalised',
+        #                 'normalised_sex', 'dose'])
+        # tmp_df['endpoint_type'] = 'Clinical chemical finding'
+        # find_df = pd.concat[find_df, tmp_df]
+
+        # cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
+        #     FINDING, STANDARDISED_PARAMETER, \
+        #     STANDARDISED_SEX, DOSE \
+        #     FROM CLINICALHEMATOLOGIC \
+        #     WHERE FINDING IS NOT NULL \
+        #     AND STANDARDISED_PARAMETER IS NOT NULL"
+        # cur.execute(cmd)
+        # results = cur.fetchall()
+        # tmp_table = []
+        # for (study_id, relevance, observation, parameter, sex, dose) in results:
+        #     if observation is None or observation.upper() == 'EXCLUDED TERM':
+        #          observation = ''
+        #     else:
+        #          observation_upper = observation.upper()
+        #          if observation_upper in normD:
+        #             observation = normD[observation_upper]
+ 
+        #     if parameter is None or parameter.upper() == 'EXCLUDED TERM':
+        #         parameter = ''
+        #     else:
+        #         parameter_upper = parameter.upper()
+        #         if parameter_upper in normD:
+        #             parameter = normD[parameter_upper]
+
+        #     if sex is None or sex.upper() == 'EXCLUDED TERM':
+        #         sex = ''
+        #     else:
+        #         sex_upper = sex.upper()
+        #         if sex_upper in normD:
+        #             sex = normD[sex_upper]
+             
+        #     if relevance is None:
+        #          relevance = 'NA'
+        #     tmp_table.append([study_id, relevance, observation, parameter, sex, dose])
+
+        # tmp_df = pd.DataFrame(tmp_table, columns=['study_id', 'relevance',
+        #                 'observation_normalised', 'organ_normalised',
+        #                 'normalised_sex', 'dose'])
+        # tmp_df['endpoint_type'] = 'Clinical hematological finding'
+        # find_df = pd.concat[find_df, tmp_df]
+
+        # cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
+        #     FINDING, STANDARDISED_ORGAN, \
+        #     STANDARDISED_SEX, DOSE \
+        #     FROM ORGAN_WEIGHTS \
+        #     WHERE FINDING IS NOT NULL \
+        #     AND STANDARDISED_ORGAN IS NOT NULL"
+        # cur.execute(cmd)
+        # results = cur.fetchall()
+        # tmp_table = []
+        # for (study_id, relevance, observation, parameter, sex, dose) in results:
+        #     if observation is None or observation.upper() == 'EXCLUDED TERM':
+        #          observation = ''
+        #     else:
+        #          observation_upper = observation.upper()
+        #          if observation_upper in normD:
+        #             observation = normD[observation_upper]
+ 
+        #     if parameter is None or parameter.upper() == 'EXCLUDED TERM':
+        #         parameter = ''
+        #     else:
+        #         parameter_upper = parameter.upper()
+        #         if parameter_upper in normD:
+        #             parameter = normD[parameter_upper]
+
+        #     if sex is None or sex.upper() == 'EXCLUDED TERM':
+        #         sex = ''
+        #     else:
+        #         sex_upper = sex.upper()
+        #         if sex_upper in normD:
+        #             sex = normD[sex_upper]
+             
+        #     if relevance is None:
+        #          relevance = 'NA'
+        #     tmp_table.append([study_id, relevance, observation, parameter, sex, dose])
+
+        # tmp_df = pd.DataFrame(tmp_table, columns=['study_id', 'relevance',
+        #                 'observation_normalised', 'organ_normalised',
+        #                 'normalised_sex', 'dose'])
+        # tmp_df['endpoint_type'] = 'Organ weight'
+        # find_df = pd.concat[find_df, tmp_df]
+
+        # cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
+        #     STAND_CLINICAL_SIGN, STANDARDISED_SEX, DOSE \
+        #     FROM CLINCAL_SIGNS \
+        #     WHERE FINDING IS NOT NULL"
+        # cur.execute(cmd)
+        # results = cur.fetchall()
+        # tmp_table = []
+        # for (study_id, relevance, observation, sex, dose) in results:
+        #     if observation is None or observation.upper() == 'EXCLUDED TERM':
+        #          observation = ''
+        #     else:
+        #          observation_upper = observation.upper()
+        #          if observation_upper in normD:
+        #             observation = normD[observation_upper]
+
+        #     if sex is None or sex.upper() == 'EXCLUDED TERM':
+        #         sex = ''
+        #     else:
+        #         sex_upper = sex.upper()
+        #         if sex_upper in normD:
+        #             sex = normD[sex_upper]
+             
+        #     if relevance is None:
+        #          relevance = 'NA'
+        #     tmp_table.append([study_id, relevance, observation, sex, dose])
+
+        # tmp_df = pd.DataFrame(tmp_table, columns=['study_id', 'relevance',
+        #                 'observation_normalised', 'normalised_sex', 'dose'])
+        # tmp_df['endpoint_type'] = 'Clinical signs'
+        # find_df = pd.concat[find_df, tmp_df]
+
+        # cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
+        #     FINDING, STANDARDISED_PARAMETER, STANDARDISED_SEX, DOSE \
+        #     FROM URINALYSIS_FINDINGS \
+        #     WHERE FINDING IS NOT NULL"
+        # cur.execute(cmd)
+        # results = cur.fetchall()
+        # tmp_table = []
+        # for (study_id, relevance, observation, parameter, sex, dose) in results:
+        #     if observation is None or observation.upper() == 'EXCLUDED TERM':
+        #          observation = ''
+        #     else:
+        #          observation_upper = observation.upper()
+        #          if observation_upper in normD:
+        #             observation = normD[observation_upper]
+ 
+        #     if parameter is None or parameter.upper() == 'EXCLUDED TERM':
+        #         parameter = ''
+        #     else:
+        #         parameter_upper = parameter.upper()
+        #         if parameter_upper in normD:
+        #             parameter = normD[parameter_upper]
+
+        #     if sex is None or sex.upper() == 'EXCLUDED TERM':
+        #         sex = ''
+        #     else:
+        #         sex_upper = sex.upper()
+        #         if sex_upper in normD:
+        #             sex = normD[sex_upper]
+             
+        #     if relevance is None:
+        #          relevance = 'NA'
+        #     tmp_table.append([study_id, relevance, observation, parameter, sex, dose])
+
+        # tmp_df = pd.DataFrame(tmp_table, columns=['study_id', 'relevance',
+        #                 'observation_normalised', 'organ_normalised',
+        #                 'normalised_sex', 'dose'])
+        # tmp_df['endpoint_type'] = 'Urinalysis findings'
+        # find_df = pd.concat[find_df, tmp_df]
 
         con.close()
 
     if args.treatment_related:
         find_df = find_df[find_df.relevance == 'treatment related']
 
-    return study_df,find_df
+    return study_df, find_df
 
 def filter_study(args,study_df):
     """
@@ -335,7 +503,8 @@ def run(args):
                         left_index=False, right_index=False, sort=False)
     stats_df = pd.merge(stats_df, studies_list_df, how='left', on='subst_id', 
                         left_index=False, right_index=False, sort=False)
-    stats_df.columns = ['subst_id', 'study_count', 'dose_max', 'dose_min', 'report_number_list']
+    stats_df.columns = ['subst_id', 'study_count', 'dose_max', 'dose_min', 
+                        'report_number_list']
 
     ###################################################################
     # Expand based on anatomical and morphological changes ontologies #
