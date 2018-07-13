@@ -71,6 +71,14 @@ def load_version(args):
         con = cx_Oracle.connect(args.user, args.passw, dsn_tns)
         cur = con.cursor()
 
+        cmd = "SELECT LUID, STRUCTURE_LUID, PARENT_LUID, DOSE, STANDARDISED_SEX, NUMBER_OF_ANIMALS \
+            FROM ANIMALS_PER_GROUP_PER_SEX"
+        cur.execute(cmd)
+        results = cur.fetchall()
+        df = pd.DataFrame(results, columns=['luid', 'subst_id', 'study_id', 'dose', 'sex', 'number_of_animals'])
+        df.to_pickle('aminals_per_group_per_sex.pkl')
+        sys.exit()
+
         # Generate normalised study dataframe
         sys.stdout.write('\tLoading studies\n')
         cmd = "SELECT STUDY_DESIGN.LUID, SUBST_ID, STANDARDISED_ROUTE, \
