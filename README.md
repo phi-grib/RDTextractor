@@ -38,6 +38,8 @@ Anatomical entity that the finding refers to (case insensitive). You can filter 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with the Oracle database, provide the Oracle database user name.
     - -p / --passw PASSW
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with the Oracle database, provide the Oracle database password.
+    - -c / --port PASSW
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with the Oracle database, the Oracle database port (default: 1521).
   - Study design-related arguments:
     - -i / --min_exposure MIN_EXPOSURE
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimum exposure period (days).

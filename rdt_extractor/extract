@@ -589,7 +589,7 @@ def main ():
             password.',  required=False)
     parser.add_argument('-c', '--port', help='If working with Vitic\'s \
             Oracle database, provide the Oracle database \
-            port.',  default='1521', required=False)
+            port (default: 1521).',  default='1521', required=False)
 
     # Study-related arguments
     parser.add_argument('-i', '--min_exposure', help='Minimum exposure \
