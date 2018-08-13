@@ -34,8 +34,6 @@ packagedir = rdt_extractor.__path__[0]
 fname = os.path.join(packagedir, '../data',  onto_file)
 onto_df = pd.read_pickle(fname)
 
-oracle_port = '1521'
-
 def load_version(args):
 
     """
@@ -68,7 +66,7 @@ def load_version(args):
         fname = os.path.join(packagedir, '../data',  norm_file)
         normD = pd.read_pickle(fname)
 
-        dsn_tns = cx_Oracle.makedsn(args.host, oracle_port, args.sid)
+        dsn_tns = cx_Oracle.makedsn(args.host, args.port, args.sid)
 
         con = cx_Oracle.connect(args.user, args.passw, dsn_tns)
         cur = con.cursor()
@@ -591,7 +589,7 @@ def main ():
             password.',  required=False)
     parser.add_argument('-c', '--port', help='If working with Vitic\'s \
             Oracle database, provide the Oracle database \
-            port.',  default=1521, type=int, required=False)
+            port.',  default='1521', required=False)
 
     # Study-related arguments
     parser.add_argument('-i', '--min_exposure', help='Minimum exposure \
