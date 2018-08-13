@@ -441,7 +441,6 @@ def expand(df,args):
         findings_out.drop_duplicates(inplace=True)
     
     else:
-
         observation_dict={}
         all_observations=set()      
         onto_histopatho=onto_df[(onto_df.ontology == 'histopathology')]
@@ -591,6 +590,9 @@ def main ():
     parser.add_argument('-p', '--passw', help='If working with Vitic\'s \
             Oracle database, provide the Oracle database \
             password.',  required=False)
+    parser.add_argument('-c', '--port', help='If working with Vitic\'s \
+            Oracle database, provide the Oracle database \
+            port.',  default=1521, type=int, required=False)
 
     # Study-related arguments
     parser.add_argument('-i', '--min_exposure', help='Minimum exposure \
