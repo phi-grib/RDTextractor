@@ -72,34 +72,6 @@ def load_version(args):
         cur = con.cursor()
 
         #
-        # Compound information
-        #
-        cmd = "SELECT SUBST_ID, CASNO, COMMON_NAME, PHARMACOLOGICAL_ACTION, \
-            STANDARDISED_TARGET, STANDARDISED_ACTION, COMPANY_ID, SMILES, STATUS \
-            FROM SUBSTANCE_IDS \
-	    JOIN PHARMACOLOGY ON PHARMACOLOGY.PARENT_LUID = SUBSTANCE_IDS.LUID"
-        cur.execute(cmd)
-        results = cur.fetchall()
-        df = pd.DataFrame(results, columns=['subst_id', 'cas_number', 'common_name', 
-                            'pharmacological_action', 'target', 'action', 'company_id', 
-                            'smiles', 'status'])
-        df.to_pickle('compound.pkl')
-
-        sys.exit()
-
-
-        #
-        # Study information summary 
-        #
-        cmd = "SELECT STRUCTURE_LUID, PARENT_LUID, DOSE, STANDARDISED_SEX, NUMBER_OF_ANIMALS \
-            FROM ANIMALS_PER_GROUP_PER_SEX"
-        cur.execute(cmd)
-        results = cur.fetchall()
-        df = pd.DataFrame(results, columns=['subst_id', 'study_id', 'dose', 'sex', 'number_of_animals'])
-        df.study_id = df.study_id.astype(object)
-        df.to_pickle('animals_per_group_per_sex.pkl')
-
-        #
         # Generate normalised study dataframe
         #
         sys.stdout.write('\tLoading studies\n')
