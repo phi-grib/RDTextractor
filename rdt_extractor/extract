@@ -77,8 +77,8 @@ def load_version(args):
         sys.stdout.write('\tLoading studies\n')
         cmd = "SELECT STUDY_DESIGN.LUID, SUBST_ID, STANDARDISED_ROUTE, \
             STANDARDISED_SPECIES, STANDARDISED_STRAIN, EXPOSURE_PERIOD, REPORT_NUMBER \
-            FROM STUDY_DESIGN \
-            JOIN SUBSTANCE_IDS ON STUDY_DESIGN.STRUCTURE_LUID = SUBSTANCE_IDS.LUID"
+            FROM %s.STUDY_DESIGN \
+            JOIN %s.SUBSTANCE_IDS ON %s.STUDY_DESIGN.STRUCTURE_LUID = %s.SUBSTANCE_IDS.LUID" %(args.sid, args.sid, args.sid, args.sid)
         cur.execute(cmd)
         results = cur.fetchall()
         tmp_table = []
@@ -106,9 +106,9 @@ def load_version(args):
         cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
             STANDARDISED_PATHOLOGY, STANDARDISED_ORGAN, \
             STANDARDISED_SEX, DOSE \
-            FROM HISTOPATHOLOGICALFI \
+            FROM %s.HISTOPATHOLOGICALFI \
             WHERE STANDARDISED_PATHOLOGY IS NOT NULL \
-            AND STANDARDISED_ORGAN IS NOT NULL"
+            AND STANDARDISED_ORGAN IS NOT NULL" %args.sid
         cur.execute(cmd)
         results = cur.fetchall()
         tmp_table = []
