@@ -93,10 +93,11 @@ def load_version(args):
              else:
                  species = species.upper()
                  species = normD[species]
-             tmp_table.append([study_id, subst_id, route, species, 
+             tmp_table.append([study_id, subst_id, route, species, strain,
                                 exposure, report_number])
         study_df = pd.DataFrame(tmp_table, columns=['study_id', 'subst_id',
-                        'normalised_administration_route', 'normalised_species', 'normalised_strain', 'exposure_period_days', 'report_number'])
+                        'normalised_administration_route', 'normalised_species', 'normalised_strain', 
+			'exposure_period_days', 'report_number'])
 
         #
         # Generate normalised findings dataframe
@@ -140,7 +141,7 @@ def load_version(args):
         find_df = pd.DataFrame(tmp_table, columns=['study_id', 'relevance',
                         'observation_normalised', 'organ_normalised',
                         'normalised_sex', 'dose'])
-        find_df['endpoint_type'] = 'Histopathlogical finding'
+        # find_df['endpoint_type'] = 'Histopathlogical finding'
         
         # cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
         #     FINDING, STANDARDISED_PARAMETER, \
@@ -438,6 +439,7 @@ def run(args):
 
     sys.stdout.write('\nLoading background information for version %s\n' %args.version)
     study_df, find_df = load_version(args)
+    sys.stdout.write('\nDone loading background information.\n')
     
     #################################
     # Select only relevant findings #
