@@ -78,7 +78,7 @@ def load_version(args):
         cmd = "SELECT STUDY_DESIGN.LUID, SUBST_ID, STANDARDISED_ROUTE, \
             STANDARDISED_SPECIES, STANDARDISED_STRAIN, EXPOSURE_PERIOD, REPORT_NUMBER \
             FROM %s.STUDY_DESIGN \
-            JOIN %s.SUBSTANCE_IDS ON %s.STUDY_DESIGN.STRUCTURE_LUID = %s.SUBSTANCE_IDS.LUID" %(args.sid, args.sid, args.sid, args.sid)
+            JOIN %s.SUBSTANCE_IDS ON %s.STUDY_DESIGN.STRUCTURE_LUID = %s.SUBSTANCE_IDS.LUID" %(args.dbname, args.dbname, args.dbname, args.dbname)
         cur.execute(cmd)
         results = cur.fetchall()
         tmp_table = []
@@ -108,7 +108,7 @@ def load_version(args):
             STANDARDISED_SEX, DOSE \
             FROM %s.HISTOPATHOLOGICALFI \
             WHERE STANDARDISED_PATHOLOGY IS NOT NULL \
-            AND STANDARDISED_ORGAN IS NOT NULL" %args.sid
+            AND STANDARDISED_ORGAN IS NOT NULL" %args.dbname
         cur.execute(cmd)
         results = cur.fetchall()
         tmp_table = []
@@ -555,6 +555,9 @@ def main ():
     parser.add_argument('-d', '--sid', help='If working with Vitic\'s \
             Oracle database, provide the Oracle SID\'s.', 
             required=False)
+    parser.add_argument('-b', '--dbname', help='If working with Vitic\'s \
+            Oracle database, provide the DB\'s name.', 
+            required=False)
     parser.add_argument('-u', '--user', help='If working with Vitic\'s \
             Oracle database, provide the Oracle database \
             user name.', required=False)
@@ -614,9 +617,11 @@ def main ():
             default= 'output', required=False)
 
     args = parser.parse_args()
-    if args.version == 'oracle' and (args.host is None or args.passw is None or 
-                                    args.sid is None or args.user is None):
-       raise argparse.ArgumentTypeError('Oracle credentials required to connect to the Oracle database.')
+    if args.version == 'oracle':
+        if (args.host is None or args.passw is None or args.sid is None or args.user is None):
+            raise argparse.ArgumentTypeError('Oracle credentials required to connect to the Oracle database.')
+        if args.dbname is None:
+            args.dbname = args.sid
 
     if args.observation:
         right_case_observations = []
