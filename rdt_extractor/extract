@@ -484,7 +484,7 @@ def run(args):
     # Get the list of sudies IDs
     studies_list_df = group_df.report_number.apply(lambda x: '; '.join(set(x))).reset_index()
     # Get all stats into a single dataframe
-    stats_df = pd.merge(count_df, study_df['study_id','dose_max','dose_min'], 
+    stats_df = pd.merge(count_df, study_df[['study_id','dose_max','dose_min']], 
                         how='inner', on='subst_id', left_index=False, right_index=False, 
                         sort=False)
     stats_df = pd.merge(stats_df, studies_list_df, how='left', on='subst_id', 
