@@ -101,15 +101,13 @@ def load_version(args):
                                 'exposure_period_days', 'report_number'])
 
         cmd = "SELECT PARENT_LUID, DOSE \
-            FROM %sANIMALS_PER_GROUP_PER_SEX \
-            JOIN %sSUBSTANCE_IDS ON %sANIMALS_PER_GROUP_PER_SEX.STRUCTURE_LUID = %sSUBSTANCE_IDS.LUID" %(args.dbname, args.dbname, args.dbname, args.dbname)
+            FROM %sANIMALS_PER_GROUP_PER_SEX" %args.dbname
         cur.execute(cmd)
         results = cur.fetchall()
         tmp_table = []
         for (study_id, dose) in results:
             tmp_table.append([study_id, dose])
         info_df = pd.DataFrame(tmp_table, columns=['study_id', 'dose'])
-        info_df.study_id = info_df.study_id.astype(int).astype(str)
         range_df = info_df[info_df.dose > 0]
         range_df = range_df.groupby(('study_id')).dose.apply(get_stats).unstack().reset_index()[['study_id','max','min']]
         range_df.columns = ['study_id','dose_max','dose_min']
