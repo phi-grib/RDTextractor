@@ -83,7 +83,7 @@ def load_version(args):
         results = cur.fetchall()
         tmp_table = []
         for (study_id, subst_id, route, species, strain, exposure, report_number) in results:
-             if route is None:
+             if route is None or route.upper() in ('EXCLUDED TERM'):
                  route = ''
              else:
                  route = route.upper()
