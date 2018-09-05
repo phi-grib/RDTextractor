@@ -31,11 +31,11 @@ import rdt_extractor
 packagedir = rdt_extractor.__path__[0]
 
 # Load ontology dataframe
-onto_file = 'anatomy_ontology.pkl'
+onto_file = 'observation_ontology.pkl'
 fname = os.path.join(packagedir, '../data',  onto_file)
 onto_anatomy_df = pd.read_pickle(fname)
 
-onto_file = 'morph_changes_ontology.pkl'
+onto_file = 'organ_ontology.pkl'
 fname = os.path.join(packagedir, '../data',  onto_file)
 onto_histopatho_df = pd.read_pickle(fname)
 
@@ -238,6 +238,9 @@ def expand(df,args):
     Expand observations and organs based on the expanded
     hierarchies of ontologies 
     """
+
+    global onto_anatomy_df, onto_histopatho_df
+
     columns = df.columns
        
     # Expand anatomical entities based on the expanded ontology
