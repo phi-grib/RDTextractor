@@ -1,0 +1,253 @@
+#!/usr/bin/env python
+#! -*- coding: utf-8 -*-
+
+##    Description    eTOX repeat-dose toxicity extraction tool
+##
+##    Authors:       Elisabet Gregori (elisabet.gregori@upf.edu)
+##                   Ignacio Pasamontes (ignacio.pasamontes@upf.edu)
+##
+##    Copyright 2018 Elisabet Gregori & Ignacio Pasamontes
+##
+##    RDTextractor is free software: you can redistribute it 
+##    and/or modify it under the terms of the GNU General Public 
+##    License as published by the Free Software Foundation version 3.
+##
+##    RDTextractor is distributed in the hope that it will be useful,
+##    but WITHOUT ANY WARRANTY; without even the implied warranty of
+##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##    GNU General Public License for more details.
+##
+##    You should have received a copy of the GNU General Public License
+##    along with this code. If not, see <http://www.gnu.org/licenses/>.
+
+import argparse, os, sys, time, math
+import time
+import pandas as pd
+# Disable SettingWithCopyWarning warnings
+pd.set_option('chained_assignment', None)
+import cx_Oracle
+import rdt_extractor
+
+# Load ontology dataframe
+onto_file = 'ontology.pkl'
+packagedir = rdt_extractor.__path__[0]
+fname = os.path.join(packagedir, '../data',  onto_file)
+onto_df = pd.read_pickle(fname)
+
+def load_version(args):
+
+    """
+    Load tables with information
+    """
+
+    if args.version == 'local':
+        ########################## 
+        # Load stored dataframes #
+        ##########################
+
+        # Load study dataframe
+        study_file = 'study.pkl'
+        fname = os.path.join(packagedir, '../data',  study_file)
+        study_df = pd.read_pickle(fname)
+        # Load finding dataframe
+        find_file = 'findings.pkl.gz'
+        fname = os.path.join(packagedir, '../data',  find_file)
+        find_df = pd.read_pickle(fname, compression='gzip')
+    else:
+        #########################################
+        # Query the Oracle database to generate #
+        # the dataframes                        #
+        #########################################
+
+        #
+        # Load normlisation lookup table
+        #
+        norm_file = 'normalisation.pkl'
+        fname = os.path.join(packagedir, '../data',  norm_file)
+        normD = pd.read_pickle(fname)
+
+        dsn_tns = cx_Oracle.makedsn(args.host, args.port, args.sid)
+
+        con = cx_Oracle.connect(args.user, args.passw, dsn_tns)
+        cur = con.cursor()
+
+        #
+        # Generate normalised study dataframe
+        #
+        sys.stdout.write('\tLoading studies\n')
+        cmd = "SELECT STUDY_DESIGN.LUID, SUBST_ID, STANDARDISED_ROUTE, \
+            STANDARDISED_SPECIES, STANDARDISED_STRAIN, EXPOSURE_PERIOD, REPORT_NUMBER \
+            FROM %sSTUDY_DESIGN \
+            JOIN %sSUBSTANCE_IDS ON %sSTUDY_DESIGN.STRUCTURE_LUID = %sSUBSTANCE_IDS.LUID" %(args.dbname, args.dbname, args.dbname, args.dbname)
+        cur.execute(cmd)
+        results = cur.fetchall()
+        tmp_table = []
+        for (study_id, subst_id, route, species, strain, exposure, report_number) in results:
+             if route is None or route.upper() in ('EXCLUDED TERM'):
+                 route = ''
+             else:
+                 route = route.upper()
+                 route = normD[route]
+             if species is None or species.upper() in ('EXCLUDED TERM'):
+                 species = ''
+             else:
+                 species = species.upper()
+                 species = normD[species]
+             tmp_table.append([study_id, subst_id, route, species, strain,
+                                exposure, report_number])
+        study_df = pd.DataFrame(tmp_table, 
+                        columns=['study_id', 'subst_id', 'normalised_administration_route',
+                                'normalised_species', 'normalised_strain', 
+                                'exposure_period_days', 'report_number'])
+
+        #
+        # Generate normalised findings dataframe
+        #
+        sys.stdout.write('\tLoading findings\n')
+        cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
+            STANDARDISED_PATHOLOGY, STANDARDISED_ORGAN, \
+            STANDARDISED_SEX, DOSE \
+            FROM %sHISTOPATHOLOGICALFI \
+            WHERE STANDARDISED_PATHOLOGY IS NOT NULL \
+            AND STANDARDISED_ORGAN IS NOT NULL" %args.dbname
+        cur.execute(cmd)
+        results = cur.fetchall()
+        tmp_table = []
+        for (study_id, relevance, observation, parameter, sex, dose) in results:
+            if observation is None or observation.upper() == 'EXCLUDED TERM':
+                 observation = ''
+            else:
+                 observation_upper = observation.upper()
+                 if observation_upper in normD:
+                    observation = normD[observation_upper]
+ 
+            if parameter is None or parameter.upper() == 'EXCLUDED TERM':
+                parameter = ''
+            else:
+                parameter_upper = parameter.upper()
+                if parameter_upper in normD:
+                    parameter = normD[parameter_upper]
+
+            if sex is None or sex.upper() == 'EXCLUDED TERM':
+                sex = ''
+            else:
+                sex_upper = sex.upper()
+                if sex_upper in normD:
+                    sex = normD[sex_upper]
+             
+            if relevance is None:
+                 relevance = 'NA'
+            tmp_table.append([study_id, relevance, observation, parameter, sex, dose])
+
+        find_df = pd.DataFrame(tmp_table, columns=['study_id', 'relevance',
+                        'observation_normalised', 'organ_normalised',
+                        'normalised_sex', 'dose'])
+
+        con.close()
+
+    return study_df, find_df
+
+def run(args):
+    study_df, find_df = load_version(args)
+
+    if args.output_basename:
+        outF = open(args.output_basename, 'w')
+    else:
+        outF = sys.stdout
+
+    if args.exposure:
+        exp_min = study_df.exposure_period_days.min()
+        exp_max = study_df.exposure_period_days.max()
+        outF.write('\nExposure range: %d to %d\n' %(exp_min,exp_max))
+    if args.route:
+        outF.write('\nRoute options:\n')
+        routes = list(study_df.normalised_administration_route.unique())
+        routes.remove('')
+        routes.sort()
+        for r in routes:
+            outF.write('\t%s\n' %r)
+    if args.species:
+        outF.write('\nSpecies options:\n')
+        species = list(study_df.normalised_species.unique())
+        species.remove('')
+        species.sort()
+        for s in species:
+            outF.write('\t%s\n' %s)
+    if args.organ:
+        outF.write('\nAnatomical entity options:\n')
+        organs = list(find_df.organ_normalised.unique())
+        organs.remove('')
+        organs.sort()
+        for o in organs:
+            outF.write('\t%s\n' %o)
+    if args.observation:
+        outF.write('\nMorphological change options:\n')
+        observations = list(find_df.observation_normalised.unique())
+        observations.remove('')
+        observations.sort()
+        for o in observations:
+            outF.write('\t%s\n' %o)
+
+def main ():
+    """
+    Parse arguments and load the extraction filters.
+    """
+    parser = argparse.ArgumentParser(description='Exract studies\' \
+            findings based on the given filtering and the organs\' and \
+            morphological changes\' ontologies-based expansions of these \
+            findngs.')
+
+    # Version-related arguments
+    parser.add_argument('-v', '--version', help='Vitic database version \
+            (default: oracle).', 
+            choices=['local', 'oracle'], default= 'oracle', required=False)
+    parser.add_argument('-n', '--host', help='If working with Vitic\'s \
+            Oracle database, provide the Oracle host\'s.', 
+            required=False)
+    parser.add_argument('-d', '--sid', help='If working with Vitic\'s \
+            Oracle database, provide the Oracle SID\'s.', 
+            required=False)
+    parser.add_argument('-b', '--dbname', help='If working with Vitic\'s \
+            Oracle database, provide the DB\'s name.', 
+            required=False)
+    parser.add_argument('-u', '--user', help='If working with Vitic\'s \
+            Oracle database, provide the Oracle database \
+            user name.', required=False)
+    parser.add_argument('-p', '--passw', help='If working with Vitic\'s \
+            Oracle database, provide the Oracle database \
+            password.',  required=False)
+    parser.add_argument('-c', '--port', help='If working with Vitic\'s \
+            Oracle database, provide the Oracle database \
+            port (default: 1521).',  default='1521', required=False)
+
+    # Study-related arguments
+    parser.add_argument('-e', '--exposure', help='Get exposure range for the whole DB.', 
+                        action='store_true', required=False)
+    parser.add_argument('-r', '--route', help='Get all route options for the whole DB.', 
+                        action='store_true',required=False)
+    parser.add_argument('-s', '--species', help='Get all species options for the whole DB.',
+                        action='store_true', required=False)
+
+    # Finding-related arguments
+    parser.add_argument('-a', '--organ', help='Get all anatomical entity options for the \
+                        whole DB.', action='store_true', required=False)
+    parser.add_argument('-m', '--observation', help='Get all morphological change options \
+                        for the whole DB.', action='store_true', required=False)
+    
+    # Output file base name
+    parser.add_argument('-o', '--output_basename', help='Output file name (default: stndard output).', 
+			required=False)
+
+    args = parser.parse_args()
+    if args.version == 'oracle':
+        if (args.host is None or args.passw is None or args.sid is None or args.user is None):
+            raise argparse.ArgumentTypeError('Oracle credentials required to connect to the Oracle database.')
+        if args.dbname is None:
+            args.dbname = ''
+        else:
+            args.dbname = args.dbname+'.'
+
+    run(args)
+
+if __name__ == '__main__':    
+    main()
