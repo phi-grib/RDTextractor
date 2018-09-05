@@ -78,8 +78,7 @@ def load_version(args):
         cmd = "SELECT STUDY_DESIGN.LUID, SUBST_ID, STANDARDISED_ROUTE, \
             STANDARDISED_SPECIES, STANDARDISED_STRAIN, EXPOSURE_PERIOD, REPORT_NUMBER \
             FROM %sSTUDY_DESIGN \
-            JOIN %sSUBSTANCE_IDS ON %sSTUDY_DESIGN.STRUCTURE_LUID = %sSUBSTANCE_IDS.LUID" 
-            %(args.dbname, args.dbname, args.dbname, args.dbname)
+            JOIN %sSUBSTANCE_IDS ON %sSTUDY_DESIGN.STRUCTURE_LUID = %sSUBSTANCE_IDS.LUID" %(args.dbname, args.dbname, args.dbname, args.dbname)
         cur.execute(cmd)
         results = cur.fetchall()
         tmp_table = []
