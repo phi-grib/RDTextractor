@@ -77,8 +77,9 @@ def load_version(args):
         sys.stdout.write('\tLoading studies\n')
         cmd = "SELECT STUDY_DESIGN.LUID, SUBST_ID, STANDARDISED_ROUTE, \
             STANDARDISED_SPECIES, STANDARDISED_STRAIN, EXPOSURE_PERIOD, REPORT_NUMBER \
-            FROM %s.STUDY_DESIGN \
-            JOIN %s.SUBSTANCE_IDS ON %s.STUDY_DESIGN.STRUCTURE_LUID = %s.SUBSTANCE_IDS.LUID" %(args.dbname, args.dbname, args.dbname, args.dbname)
+            FROM %sSTUDY_DESIGN \
+            JOIN %sSUBSTANCE_IDS ON %sSTUDY_DESIGN.STRUCTURE_LUID = %sSUBSTANCE_IDS.LUID" 
+            %(args.dbname, args.dbname, args.dbname, args.dbname)
         cur.execute(cmd)
         results = cur.fetchall()
         tmp_table = []
@@ -95,9 +96,27 @@ def load_version(args):
                  species = normD[species]
              tmp_table.append([study_id, subst_id, route, species, strain,
                                 exposure, report_number])
-        study_df = pd.DataFrame(tmp_table, columns=['study_id', 'subst_id',
-                        'normalised_administration_route', 'normalised_species', 'normalised_strain', 
-			'exposure_period_days', 'report_number'])
+        study_df = pd.DataFrame(tmp_table, 
+                        columns=['study_id', 'subst_id', 'normalised_administration_route',
+                                'normalised_species', 'normalised_strain', 
+                                'exposure_period_days', 'report_number'])
+
+        cmd = "SELECT PARENT_LUID, DOSE \
+            FROM %sANIMALS_PER_GROUP_PER_SEX \
+            JOIN %sSUBSTANCE_IDS ON %sANIMALS_PER_GROUP_PER_SEX.STRUCTURE_LUID = %sSUBSTANCE_IDS.LUID" %(args.dbname, args.dbname, args.dbname, args.dbname)
+        cur.execute(cmd)
+        results = cur.fetchall()
+        tmp_table = []
+        for (study_id, dose) in results:
+            tmp_table.append([study_id, dose])
+        info_df = pd.DataFrame(tmp_table, columns=['study_id', 'dose'])
+        info_df.study_id = info_df.study_id.astype(int).astype(str)
+        range_df = info_df[info_df.dose > 0]
+        range_df = range_df.groupby(('study_id')).dose.apply(get_stats).unstack().reset_index()[['study_id','max','min']]
+        range_df.columns = ['study_id','dose_max','dose_min']
+        study_df = pd.merge(study_df, range_df,
+                            how='left', on='study_id', left_index=False, right_index=False,
+                            sort=False)
 
         #
         # Generate normalised findings dataframe
@@ -106,7 +125,7 @@ def load_version(args):
         cmd = "SELECT DISTINCT PARENT_LUID AS study_id, RELEVANCE, \
             STANDARDISED_PATHOLOGY, STANDARDISED_ORGAN, \
             STANDARDISED_SEX, DOSE \
-            FROM %s.HISTOPATHOLOGICALFI \
+            FROM %sHISTOPATHOLOGICALFI \
             WHERE STANDARDISED_PATHOLOGY IS NOT NULL \
             AND STANDARDISED_ORGAN IS NOT NULL" %args.dbname
         cur.execute(cmd)
@@ -465,15 +484,13 @@ def run(args):
     count_df = group_df.study_id.nunique().to_frame().reset_index()
     # Get the list of sudies IDs
     studies_list_df = group_df.report_number.apply(lambda x: '; '.join(set(x))).reset_index()
-    # Get the global dose range per substance
-    range_df = relevant_find[relevant_find.dose > 0]
-    range_df = range_df.groupby(('subst_id')).dose.apply(get_stats).unstack().reset_index()
     # Get all stats into a single dataframe
-    stats_df = pd.merge(count_df, range_df, how='inner', on='subst_id', 
-                        left_index=False, right_index=False, sort=False)
+    stats_df = pd.merge(count_df, study_df['study_id','dose_max','dose_min'], 
+                        how='inner', on='subst_id', left_index=False, right_index=False, 
+                        sort=False)
     stats_df = pd.merge(stats_df, studies_list_df, how='left', on='subst_id', 
                         left_index=False, right_index=False, sort=False)
-    stats_df.columns = ['subst_id', 'study_count', 'dose_max', 'dose_min', 
+    stats_df.columns = ['subst_id', 'study_count', 'dose_max', 'dose_min',
                         'report_number_list']
 
     ###################################################################
@@ -621,7 +638,9 @@ def main ():
         if (args.host is None or args.passw is None or args.sid is None or args.user is None):
             raise argparse.ArgumentTypeError('Oracle credentials required to connect to the Oracle database.')
         if args.dbname is None:
-            args.dbname = args.sid
+            args.dbname = ''
+        else:
+            args.dbname = args.dbname+'.'
 
     if args.observation:
         right_case_observations = []
