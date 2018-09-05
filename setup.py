@@ -17,6 +17,6 @@ setup(name='rdt_extractor',
       author='Elisabet Gregori and Ignacio Pasamontes',
       author_email='elisabet.gregori@upf.edu',
       packages=['rdt_extractor'],
-      scripts=['rdt_extractor/extract'],
+      scripts=['rdt_extractor/extract', 'rdt_extractor/getRDToptions'],
       data_files=data_files
     )
