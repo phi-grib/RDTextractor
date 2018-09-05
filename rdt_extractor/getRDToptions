@@ -235,7 +235,7 @@ def main ():
                         for the whole DB.', action='store_true', required=False)
     
     # Output file base name
-    parser.add_argument('-o', '--output_basename', help='Output file name (default: stndard output).', 
+    parser.add_argument('-o', '--output_basename', help='Output file name (default: standard output).', 
 			required=False)
 
     args = parser.parse_args()
