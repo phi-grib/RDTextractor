@@ -34,6 +34,8 @@ Anatomical entity that the finding refers to (case insensitive). You can filter 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with the Oracle database, provide the Oracle DB's host.
     - -d / --sid SID
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with the Oracle database, provide the Oracle SID's.
+    - -b / --dbname DBname
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with Vitic\'s Oracle database, provide the DB\'s name if necessary for querying.
     - -u / --user USER
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with the Oracle database, provide the Oracle database user name.
     - -p / --passw PASSW
@@ -115,6 +117,8 @@ show all the available options for any of the selected fields.
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with the Oracle database, provide the Oracle DB's host.
     - -d / --sid SID
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with the Oracle database, provide the Oracle SID's.
+    - -b / --dbname DBname
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with Vitic\'s Oracle database, provide the DB\'s name if necessary for querying.
     - -u / --user USER
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with the Oracle database, provide the Oracle database user name.
     - -p / --passw PASSW
