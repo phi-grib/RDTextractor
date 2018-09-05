@@ -1,5 +1,7 @@
 # RDTextractor
 
+## !! Requires python3.6 !!
+
 ## Installation
 `pip install -r requirements.txt`  
 `python setup.py install`
@@ -28,12 +30,16 @@ Anatomical entity that the finding refers to (case insensitive). You can filter 
   - Version-related arguments:
     - -v / --version _{local, oracle}_
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Vitic database version (default: oracle).
+    - -n / --host 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with the Oracle database, provide the Oracle DB's host.
     - -d / --sid SID
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with the Oracle database, provide the Oracle SID's.
     - -u / --user USER
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with the Oracle database, provide the Oracle database user name.
     - -p / --passw PASSW
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with the Oracle database, provide the Oracle database password.
+    - -c / --port PASSW
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If working with the Oracle database, the Oracle database port (default: 1521).
   - Study design-related arguments:
     - -i / --min_exposure MIN_EXPOSURE
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimum exposure period (days).
@@ -43,13 +49,13 @@ Anatomical entity that the finding refers to (case insensitive). You can filter 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Administration route (case insensitive). You can filter for more than one administration route by passing a blank space-separated list.
     - -s / --species _{Mouse, Rat, Hamster, Guinea pig, Rabbit, Dog, Pig, Marmoset, Monkey, Baboon}_
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Species (case insensitive). You can filter for more than one species by passing a blank space-separated list.
-    - -x / --sex _{F,M,Both}_
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study design sex.
   - Finding-related arguments:
     - -m / --observation OBSERVATION
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Morphological change type that the finding refers to (case insensitive). You can filter for more than one morphological change by passing a blank space-separated list.
     - -t / --treatment_related
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keep only treatment-related findings.
+    - -x / --sex _{F,M,Both}_
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Finding's sex sex.
   - Output-related arguments:
     - -o / --output_basename OUTPUT_BASENAME
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Output file base name. Two output files will be generated: basename_quant.tsv and basename_qual.tsv, with quantitative and qualitative results respectively. (default: output).
