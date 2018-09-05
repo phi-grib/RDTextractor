@@ -510,6 +510,7 @@ def run(args):
     filtered_find.fillna(value={'organ_normalised': 'NA', 'observation_normalised': 'NA'}, inplace=True)
     filtered_find['finding'] = filtered_find.apply(lambda row: row.organ_normalised+'_'+row.observation_normalised, axis=1)
     filtered_find = filtered_find[['subst_id', 'finding', 'dose']]
+    filtered_find = filtered_find[filtered_find.dose > 0]
 
     # Aggregate by substance and finding (as defined above), 
     # keeping the minimum dose for each substance/finding instance
