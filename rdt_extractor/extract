@@ -244,12 +244,17 @@ def expand(df,args):
      # get for each organ get all its childs and crate a dict
     for organ in args.organ: 
         all_organs.union([organ])
+        print ('parent term')
+        print (all_organs)
         related_organs = onto_anatomy[(onto_anatomy.parent_term == organ)]
         all_organs = all_organs.union(related_organs.child_term)
+        print ('expanded terms')
+        print (all_organs)
         organs_dict.update({n: organ for n in related_organs.child_term})
 
     df = df[df['organ_normalised'].isin(all_organs)]
     df.loc[:,'organ_normalised'] = df['organ_normalised'].map(organs_dict)
+    print (df.shape)
    
     ###############
     # OBSERVATION #
