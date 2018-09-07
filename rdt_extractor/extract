@@ -83,17 +83,17 @@ def load_version(args):
         results = cur.fetchall()
         tmp_table = []
         for (study_id, subst_id, route, species, strain, exposure, report_number) in results:
-             if route is None or route.upper() in ('EXCLUDED TERM'):
-                 route = ''
-             else:
-                 route = route.upper()
-                 route = normD[route]
-             if species is None or species.upper() in ('EXCLUDED TERM'):
-                 species = ''
-             else:
-                 species = species.upper()
-                 species = normD[species]
-             tmp_table.append([study_id, subst_id, route, species, strain,
+            if route is None or route.upper() in ('EXCLUDED TERM'):
+                route = ''
+            else:
+                route = route.upper()
+                route = normD[route]
+            if species is None or species.upper() in ('EXCLUDED TERM'):
+                species = ''
+            else:
+                species = species.upper()
+                species = normD[species]
+            tmp_table.append([study_id, subst_id, route, species, strain,
                                 exposure, report_number])
         study_df = pd.DataFrame(tmp_table, 
                         columns=['study_id', 'subst_id', 'normalised_administration_route',
