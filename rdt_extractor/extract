@@ -33,6 +33,7 @@ onto_file = 'ontology.pkl'
 packagedir = rdt_extractor.__path__[0]
 fname = os.path.join(packagedir, '../data',  onto_file)
 onto_df = pd.read_pickle(fname)
+onto_file = onto_df[(onto_df.ontology == 'histopathology')]
 
 def load_version(args):
 
@@ -46,13 +47,18 @@ def load_version(args):
         ##########################
 
         # Load study dataframe
-        study_file = 'study.pkl'
+        study_file = 'study_cmpd.pkl'
         fname = os.path.join(packagedir, '../data',  study_file)
         study_df = pd.read_pickle(fname)
+
         # Load finding dataframe
         find_file = 'findings.pkl.gz'
         fname = os.path.join(packagedir, '../data',  find_file)
         find_df = pd.read_pickle(fname, compression='gzip')
+        find_df = find_df[find_df.endpoint_type == 'Histopathological']
+        find_df.drop(columns ='endpoint_type', inplace=True)
+        find_df.observation = find_df.observation.str.lower()
+        find_df.parameter = find_df.parameter.str.lower()
     else:
         #########################################
         # Query the Oracle database to generate #
@@ -76,13 +82,13 @@ def load_version(args):
         #
         sys.stdout.write('\tLoading studies\n')
         cmd = "SELECT STUDY_DESIGN.LUID, SUBST_ID, STANDARDISED_ROUTE, \
-            STANDARDISED_SPECIES, STANDARDISED_STRAIN, EXPOSURE_PERIOD, REPORT_NUMBER \
+            STANDARDISED_SPECIES, EXPOSURE_PERIOD, REPORT_NUMBER \
             FROM %sSTUDY_DESIGN \
             JOIN %sSUBSTANCE_IDS ON %sSTUDY_DESIGN.STRUCTURE_LUID = %sSUBSTANCE_IDS.LUID" %(args.dbname, args.dbname, args.dbname, args.dbname)
         cur.execute(cmd)
         results = cur.fetchall()
         tmp_table = []
-        for (study_id, subst_id, route, species, strain, exposure, report_number) in results:
+        for (study_id, subst_id, route, species, exposure, report_number) in results:
             if route is None or route.upper() in ('EXCLUDED TERM'):
                 route = ''
             else:
@@ -93,12 +99,38 @@ def load_version(args):
             else:
                 species = species.upper()
                 species = normD[species]
-            tmp_table.append([study_id, subst_id, route, species, strain,
+            tmp_table.append([study_id, subst_id, route, species,
                                 exposure, report_number])
         study_df = pd.DataFrame(tmp_table, 
-                        columns=['study_id', 'subst_id', 'normalised_administration_route',
-                                'normalised_species', 'normalised_strain', 
-                                'exposure_period_days', 'report_number'])
+                        columns=['study_id', 'subst_id', 'admin_route',
+                                'species', 'exposure_period_days', 'report_number'])
+
+
+        # cmd = "SELECT STUDY_DESIGN.LUID, SUBST_ID, ADMINISTRATION_ROUTE, STANDARDISED_ROUTE, \
+        #     SPECIES, STANDARDISED_SPECIES, EXPOSURE_PERIOD, REPORT_NUMBER \
+        #     FROM %sSTUDY_DESIGN \
+        #     JOIN %sSUBSTANCE_IDS ON %sSTUDY_DESIGN.STRUCTURE_LUID = %sSUBSTANCE_IDS.LUID" %(args.dbname, args.dbname, args.dbname, args.dbname)
+        # cur.execute(cmd)
+        # results = cur.fetchall()
+        # tmp_table = []
+        # for (study_id, subst_id, verbatim_route, route, verbatim_species, species, exposure, report_number) in results:
+        #     if route is None:
+        #         if
+        #     elif route.upper() in ('EXCLUDED TERM'):
+        #         route = ''
+        #     else:
+        #         route = route.upper()
+        #         route = normD[route]
+        #     if species is None or species.upper() in ('EXCLUDED TERM'):
+        #         species = ''
+        #     else:
+        #         species = species.upper()
+        #         species = normD[species]
+        #     tmp_table.append([study_id, subst_id, route, species,
+        #                         exposure, report_number])
+        # study_df = pd.DataFrame(tmp_table, 
+        #                 columns=['study_id', 'subst_id', 'admin_route',
+        #                         'species', 'exposure_period_days', 'report_number'])
 
         cmd = "SELECT PARENT_LUID, DOSE \
             FROM %sANIMALS_PER_GROUP_PER_SEX" %args.dbname
@@ -150,20 +182,19 @@ def load_version(args):
                 if sex_upper in normD:
                     sex = normD[sex_upper]
              
-            if relevance is None:
-                 relevance = 'NA'
+            if relevance is None or relevance.lower() != 'treatment related':
+                 relevance = False
             else:
-                 relevance = relevance.lower()
+                 relevance = True
             tmp_table.append([study_id, relevance, observation, parameter, sex, dose])
 
         find_df = pd.DataFrame(tmp_table, columns=['study_id', 'relevance',
-                        'observation_normalised', 'organ_normalised',
-                        'normalised_sex', 'dose'])
+                        'observation', 'parameter','sex', 'dose'])
 
         con.close()
 
     if args.treatment_related:
-        find_df = find_df[find_df.relevance == 'treatment related']
+        find_df = find_df[find_df.relevance]
 
     return study_df, find_df
 
@@ -185,11 +216,11 @@ def filter_study(args,study_df):
 
     # Administration route
     if args.route:
-        df = df[df.normalised_administration_route.str.lower().isin([x.lower() for x in args.route])]
+        df = df[df.admin_route.str.lower().isin([x.lower() for x in args.route])]
         
     # Species
     if args.species:
-        df = df[df.normalised_species.str.lower().isin([x.lower() for x in args.species])]
+        df = df[df.species.str.lower().isin([x.lower() for x in args.species])]
     
     return df
 
@@ -214,40 +245,36 @@ def expand(df,args):
         all_organs = all_organs.union(related_organs.child_term)
         organs_dict.update({n: organ for n in related_organs.child_term})
 
-    df = df[df['organ_normalised'].isin(all_organs)]
-    df.loc[:,'organ_normalised'] = df['organ_normalised'].map(organs_dict)
+    df = df[df['parameter'].isin(all_organs)]
+    df.loc[:,'parameter'] = df['parameter'].map(organs_dict)
    
     ###############
     # OBSERVATION #
     ###############
     if args.observation is None:
       
-        onto_histopatho=onto_df[(onto_df['ontology'] == 'histopathology') 
-                    & (onto_df['parent_term']!='morphologic change')]
+        onto_histopatho = onto_df[onto_df['parent_term']!='morphologic change']
 
         findings_out = pd.merge(df, onto_histopatho, how='left',
-                                left_on='observation_normalised', 
+                                left_on='observation', 
                                 right_on='child_term')
         findings_out = findings_out[['study_id','relevance','parent_term',
-                                    'organ_normalised','normalised_sex',
-                                    'dose','subst_id','report_number']]
+                                    'parameter','sex','dose']]
         findings_out.columns = df.columns
         findings_out.drop_duplicates(inplace=True)
-    
     else:
         observation_dict={}
         all_observations=set()      
-        onto_histopatho=onto_df[(onto_df.ontology == 'histopathology')]
 
         # get for each observation all its childs and crate a dict
         for observation in args.observation: 
             all_observations.union([observation])
-            related_observation = onto_histopatho[(onto_histopatho.parent_term == observation)]
+            related_observation = onto_df[(onto_df.parent_term == observation)]
             all_observations = all_observations.union(related_observation.child_term)
             observation_dict.update({n: observation for n in related_observation.child_term})
 
-        findings_out=df[df['observation_normalised'].isin(all_observations)]
-        findings_out.loc[:,'observation_normalised']=df['observation_normalised'].map(observation_dict)
+        findings_out = df[df['observation'].isin(all_observations)]
+        findings_out.loc[:,'observation']=df['observation'].map(observation_dict)
             
     return findings_out
 
@@ -265,92 +292,82 @@ def run(args):
     study_df, find_df = load_version(args)
     sys.stdout.write('\nDone loading background information.\n')
     
+    ################################
+    # Select only relevant studies #
+    ################################
+    sys.stdout.write('Filtering to relevant information\n')
+    relevant_studies_df = filter_study(args, study_df)
+    
     #################################
     # Select only relevant findings #
     #################################
-    sys.stdout.write('Filtering to relevant information\n')
-    relevant_studies_df = filter_study(args,study_df)
-    relevant_find = find_df[find_df.study_id.isin(relevant_studies_df.study_id)]
-    relevant_find = pd.merge(relevant_find, study_df[['study_id', 'subst_id', 'report_number']],
-                        how='left', on='study_id', left_index=False,
-                        right_index=False, sort=False)
-    relevant_find.report_number = relevant_find.report_number.fillna('NA')
+    filtered_find = find_df[find_df.study_id.isin(relevant_studies_df.study_id)]
 
     # Findings' level sex filtering
     if args.sex:
-        relevant_find = relevant_find[relevant_find.normalised_sex.str.lower() == args.sex.lower()]
-    
-    start=time.time()
-    ###################################
-    # Get stats for relevant findings #
-    ###################################
-    group_df = relevant_find.groupby(('subst_id'))
-    # Get the number of studies per substance
-    count_df = group_df.study_id.nunique().to_frame().reset_index()
-    # Get the list of sudies IDs
-    studies_list_df = group_df.report_number.apply(lambda x: '; '.join(set(x))).reset_index()
-    # Get all stats into a single dataframe
-    stats_df = pd.merge(count_df, study_df[['subst_id','dose_max','dose_min']], 
-                        how='inner', on='subst_id', left_index=False, right_index=False, 
-                        sort=False)
-    stats_df = pd.merge(stats_df, studies_list_df, how='left', on='subst_id', 
-                        left_index=False, right_index=False, sort=False)
-    stats_df.columns = ['subst_id', 'study_count', 'dose_max', 'dose_min',
-                        'report_number_list']
+        filtered_find = filtered_find[filtered_find.sex.str.lower() == args.sex.lower()]
 
-    ###################################################################
-    # Expand based on anatomical and morphological changes ontologies #
-    ###################################################################
     # Expand organs and histopathological findings according to the ontologies 
     # and filter by finding-based arguments
     sys.stdout.write('Expand based on anatomic and morphological change ontologies\n')
-    filtered_find = expand(relevant_find,args)
+    filtered_find = expand(filtered_find, args)
+
+    filtered_find.dropna(subset=['observation', 'parameter'], inplace=True)
 
     if filtered_find.empty:
         raise Exception('Filtered out all rows, so the dataframe is empty.')
 
+    ###################################
+    # Get stats for relevant findings #
+    ###################################
+    # Get all stats into a single dataframe
+    stats_df = pd.merge(filtered_find, 
+                        relevant_studies_df[['subst_id', 'report_number', 'study_id','dose_max','dose_min']], 
+                        how='right', on='study_id', left_index=False, right_index=False, 
+                        sort=False)
+    stats_df.report_number = stats_df.report_number.fillna('NA')
+    stats_df = stats_df[['subst_id', 'report_number', 'dose_min', 'dose_max', 'study_id']]
+    stats_df.drop_duplicates(inplace=True)
+
     ######################################
-    # Aggragate by substance and finding #
+    # Aggragate by study and finding #
     ######################################
     # Define finding as organ+observation
-    filtered_find.fillna(value={'organ_normalised': 'NA', 'observation_normalised': 'NA'}, inplace=True)
-    filtered_find['finding'] = filtered_find.apply(lambda row: row.organ_normalised+'_'+row.observation_normalised, axis=1)
-    filtered_find = filtered_find[['subst_id', 'finding', 'dose']]
+    filtered_find['finding'] = filtered_find.apply(lambda row: row.parameter+'_'+row.observation, axis=1)
+    filtered_find = filtered_find[['study_id', 'finding', 'dose']]
     filtered_find = filtered_find[filtered_find.dose > 0]
 
     # Aggregate by substance and finding (as defined above), 
     # keeping the minimum dose for each substance/finding instance
-    group_df = filtered_find.groupby(('subst_id', 'finding')).min().add_prefix('min_').reset_index()
+    group_df = filtered_find.groupby(('study_id', 'finding')).min().add_prefix('min_').reset_index()
     
     #######################################
     # Pivot so that each finding is a row #
     #######################################
     ### Quantitative
-    pivotted_df = group_df.pivot_table(index='subst_id', columns='finding', values='min_dose').reset_index()
+    pivotted_df = group_df.pivot_table(index='study_id', columns='finding', values='min_dose').reset_index()
     pivotted_df['is_active'] = 'True'
-    quantitative_df = pd.merge(stats_df, pivotted_df, how='left', on='subst_id', 
+
+    quantitative_df = pd.merge(stats_df, pivotted_df, how='left', on='study_id', 
                                 left_index=False, right_index=False, sort=False)
     quantitative_df.is_active = quantitative_df.is_active.fillna('False')
     # Reorder columns
     cols = quantitative_df.columns.tolist()
-    cols = cols[0:5]+[cols[-1]]+cols[5:-1]
+    cols = cols[0:2]+[cols[4]]+cols[2:4]+[cols[-1]]+cols[5:-1]
     quantitative_df = quantitative_df[cols]
     
     ### Qualitative
     group_df.loc[:,'min_dose'] = 1
-    pivotted_df = group_df.pivot_table(index='subst_id', columns='finding', values='min_dose').reset_index()
+    pivotted_df = group_df.pivot_table(index='study_id', columns='finding', values='min_dose').reset_index()
     pivotted_df['is_active'] = 'True'
-    qualitative_df = pd.merge(stats_df, pivotted_df, how='left', on='subst_id',
+    qualitative_df = pd.merge(stats_df, pivotted_df, how='left', on='study_id',
                                 left_index=False, right_index=False, sort=False)
     qualitative_df.is_active = qualitative_df.is_active.fillna('False')
     # Reorder columns
     cols = qualitative_df.columns.tolist()
-    cols = cols[0:5]+[cols[-1]]+cols[5:-1]
+    cols = cols[0:2]+[cols[4]]+cols[2:4]+[cols[-1]]+cols[5:-1]
     qualitative_df = qualitative_df[cols]
 
-    end=time.time()
-
-    print ("Time: "+str(end-start))
     ####################
     # Save the results #
     ####################
