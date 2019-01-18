@@ -92,7 +92,7 @@ After extracting data using this tool, two output files are generated, one with 
 - study_count: Number of relevant studies (according to the current filtering scheme) in which the substance appears.
 - dose_max: Maximum dose at which the substance has been tested among the relevant studies.
 - dose_min: Minimum dose at which the substance has been tested among the relevant studies.
-- is_active: Boolean indicating whether the substance has been found to have any toxicity according to the current finding-related filtering criteria.
+- is_active: Boolean indicating whether the substance has been found to have any toxicity according to the current finding-related filtering criteria. If 'False', the substance passes all study-level filters but doesn't have any finding matching the finding-level filters.
 
 After these, there is a column for each relevant finding. In these columns a value is provided if the finding is reported for the given substance, and it is empty otherwise. The value will be 1 in the qualitative file and the minimum dose at which the finding is reported in the quantitative file.
 
